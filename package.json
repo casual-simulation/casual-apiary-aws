@@ -1,7 +1,8 @@
 {
-  "name": "casual-apiary",
+  "name": "casual-apiary-aws",
   "version": "1.0.0",
-  "description": "Serverless webpack example using Typescript",
+  "private": true,
+  "description": "Serverless CasualOS on AWS",
   "main": "handler.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

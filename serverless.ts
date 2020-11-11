@@ -1,12 +1,9 @@
 import type { Serverless } from 'serverless/aws';
 
 const serverlessConfiguration: Serverless = {
-  service: {
-    name: 'casual-apiary',
-    // app and org for use with dashboard.serverless.com
-    // app: your-app-name,
-    // org: your-org-name,
-  },
+  service: 'casual-apiary',
+  org: 'kallyngowdy',
+  app: 'casual-apiary-aws',
   frameworkVersion: '2',
   custom: {
     webpack: {
@@ -19,6 +16,7 @@ const serverlessConfiguration: Serverless = {
   provider: {
     name: 'aws',
     runtime: 'nodejs12.x',
+    profile: 'casualsimulation',
     apiGateway: {
       minimumCompressionSize: 1024,
     },
