@@ -38,6 +38,40 @@ const serverlessConfiguration: Serverless = {
             ],
         },
     },
+    resources: {
+        Resources: {
+            AtomsTable: {
+                Type: 'AWS::DynamoDB::Table',
+                Properties: {
+                    TableName: 'AtomsTable',
+                    AttributeDefinitions: [
+                        {
+                            AttributeName: 'namespace',
+                            AttributeType: 'S',
+                        },
+                        {
+                            AttributeName: 'atomId',
+                            AttributeType: 'S',
+                        },
+                    ],
+                    KeySchema: [
+                        {
+                            AttributeName: 'namespace',
+                            KeyType: 'HASH',
+                        },
+                        {
+                            AttributeName: 'atomId',
+                            KeyType: 'RANGE',
+                        },
+                    ],
+                    ProvisionedThroughput: {
+                        ReadCapacityUnits: 1,
+                        WriteCapacityUnits: 1,
+                    },
+                },
+            },
+        },
+    },
 };
 
 module.exports = serverlessConfiguration;
