@@ -37,6 +37,17 @@ const serverlessConfiguration: Serverless = {
                 },
             ],
         },
+        write: {
+            handler: 'handler.write',
+            events: [
+                {
+                    http: {
+                        method: 'post',
+                        path: 'write',
+                    },
+                },
+            ],
+        },
     },
     resources: {
         Resources: {

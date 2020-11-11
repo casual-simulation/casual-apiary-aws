@@ -11,8 +11,8 @@ module.exports = {
         ? 'cheap-module-eval-source-map'
         : 'source-map',
     resolve: {
-        extensions: ['.mjs', '.json', '.ts'],
-        symlinks: false,
+        extensions: ['.mjs', '.json', '.js', '.ts'],
+        // symlinks: false,
         cacheWithContext: false,
     },
     output: {
@@ -21,7 +21,11 @@ module.exports = {
         filename: '[name].js',
     },
     target: 'node',
-    externals: [nodeExternals()],
+    externals: [
+        nodeExternals({
+            whitelist: /^@casual-simulation\/(?!aux-server)|uuid/,
+        }),
+    ],
     module: {
         rules: [
             // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
