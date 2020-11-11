@@ -1,9 +1,9 @@
-import type { Serverless } from 'serverless/aws';
+import type { Serverless, ApiGateway } from 'serverless/aws';
 
 const serverlessConfiguration: Serverless = {
-  service: 'casual-apiary',
+  service: 'casual-apiary-aws',
   org: 'kallyngowdy',
-  app: 'casual-apiary-aws',
+  app: 'casual-apiary',
   frameworkVersion: '2',
   custom: {
     webpack: {
@@ -18,8 +18,9 @@ const serverlessConfiguration: Serverless = {
     runtime: 'nodejs12.x',
     profile: 'casualsimulation',
     apiGateway: {
+      shouldStartNameWithService: true,
       minimumCompressionSize: 1024,
-    },
+    } as ApiGateway,
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
     },
