@@ -8,7 +8,12 @@ import {
 } from 'aws-lambda';
 import AWS from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
-import { atom, atomId, atomIdToString } from '@casual-simulation/causal-trees';
+import {
+    Atom,
+    atom,
+    atomId,
+    atomIdToString,
+} from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
@@ -57,7 +62,7 @@ export async function write(
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
     return {
         namespace,
-        atomId: atomIdToString(atom),
+        atomId: atomIdToString(atom.id),
         atomJson: JSON.stringify(atom),
     };
 }
