@@ -7,7 +7,7 @@ import {
     APIGatewayProxyStructuredResultV2,
     Context,
 } from 'aws-lambda';
-import AWS from 'aws-sdk';
+import AWS, { ApiGatewayManagementApi } from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
 import {
     Atom,
@@ -16,6 +16,13 @@ import {
     atomIdToString,
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
+import {
+    Encoder,
+    Decoder,
+    ConnectPacket,
+    CONNECT,
+    Packet,
+} from 'socket.io-parser';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
     return {
@@ -100,10 +107,83 @@ export async function read(
     };
 }
 
+export async function connect(
+    event: APIGatewayProxyEvent,
+    context: Context
+): Promise<APIGatewayProxyStructuredResultV2> {
+    // Send initial connect event
+    const packet: ConnectPacket = {
+        type: CONNECT,
+        nsp: '/',
+    };
+
+    const encoded = encodePacket(packet);
+    await sendMessageToClient(
+        callbackUrl(event),
+        event.requestContext.connectionId,
+        encoded
+    );
+
+    return {
+        statusCode: 200,
+    };
+}
+
+export async function disconnect(
+    event: APIGatewayProxyEvent,
+    context: Context
+): Promise<APIGatewayProxyStructuredResultV2> {
+    return {
+        statusCode: 200,
+    };
+}
+
+export async function message(
+    event: APIGatewayProxyEvent,
+    context: Context
+): Promise<APIGatewayProxyStructuredResultV2> {
+    return {
+        statusCode: 200,
+    };
+}
+
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
     return {
         namespace,
         atomId: atomIdToString(atom.id),
         atomJson: JSON.stringify(atom),
     };
+}
+
+const encoder = new Encoder();
+
+function encodePacket(packet: Packet): string {
+    let encoded: string;
+    encoder.encode(packet, ([data]) => {
+        encoded = data;
+    });
+
+    return encoded;
+}
+
+function callbackUrl(event: APIGatewayProxyEvent): string {
+    const domain = event.requestContext.domainName;
+    const path = event.requestContext.path;
+    return `https://${domain}/${path}`;
+}
+
+async function sendMessageToClient(
+    url: string,
+    connectionId: string,
+    payload: string
+) {
+    const api = new ApiGatewayManagementApi({
+        endpoint: url,
+    });
+    await api
+        .postToConnection({
+            ConnectionId: connectionId,
+            Data: payload,
+        })
+        .promise();
 }

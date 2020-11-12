@@ -20,6 +20,7 @@ provider:
     apiGateway:
         shouldStartNameWithService: true
         minimumCompressionSize: 1024
+    websocketsApiName: casual-apiary
     environment:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
     iamRoleStatements:
@@ -36,25 +37,21 @@ provider:
           Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/AtomsTable'
 
 functions:
-    hello:
-        handler: handler.hello
+    connect:
+        handler: handler.connect
         events:
-            - http:
-                  method: get
-                  path: hello
-    write:
-        handler: handler.write
+            - websocket:
+              route: $connect
+    disconnect:
+        handler: handler.disconnect
         events:
-            - http:
-                  method: post
-                  path: write
-    read:
-        handler: handler.read
+            - websocket:
+              route: $disconnect
+    message:
+        handler: handler.message
         events:
-            - http:
-                  method: get
-                  path: read
-
+            - websocket:
+              route: $default
 resources:
     Resources:
         AtomsTable:
@@ -74,3 +71,16 @@ resources:
                 ProvisionedThroughput:
                     ReadCapacityUnits: 1
                     WriteCapacityUnits: 1
+        # ConnectionsTable:
+        #     Type: AWS::DynamoDB::Table
+        #     Properties:
+        #         TableName: ConnectionsTable
+        #         AttributeDefinitions:
+        #             - AttributeName: connectionId
+        #               AttributeType: S
+        #         KeySchema:
+        #             - AttributeName: connectionId
+        #               KeyType: HASH
+        #     ProvisionedThroughput:
+        #         ReadCapacityUnits: 1
+        #         WriteCapacityUnits: 1
