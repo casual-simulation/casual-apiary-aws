@@ -16,13 +16,7 @@ import {
     atomIdToString,
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
-import {
-    Encoder,
-    Decoder,
-    ConnectPacket,
-    CONNECT,
-    Packet,
-} from 'socket.io-parser';
+import { Packet } from './src/Events';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
     return {
@@ -111,17 +105,8 @@ export async function connect(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
-    // Send initial connect event
-    const packet: ConnectPacket = {
-        type: CONNECT,
-        nsp: '/',
-    };
-
-    const encoded = encodePacket(packet);
-    await sendMessageToClient(
-        callbackUrl(event),
-        event.requestContext.connectionId,
-        encoded
+    console.log(
+        `Got WebSocket connection: ${event.requestContext.connectionId}`
     );
 
     return {
@@ -133,6 +118,9 @@ export async function disconnect(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    console.log(
+        `Got WebSocket disconnect: ${event.requestContext.connectionId}`
+    );
     return {
         statusCode: 200,
     };
@@ -142,9 +130,45 @@ export async function message(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    console.log(
+        `Got WebSocket message from ${event.requestContext.connectionId}`,
+        event.body
+    );
+
+    const packet = parsePacket(event.body);
+
+    if (!packet) {
+        return {
+            statusCode: 400,
+        };
+    }
+
+    if (packet.type === 'login') {
+        await sendMessageToClient(
+            callbackUrl(event),
+            event.requestContext.connectionId,
+            'Got your login!'
+        );
+    } else if (packet.type === 'message') {
+        await sendMessageToClient(
+            callbackUrl(event),
+            event.requestContext.connectionId,
+            'Got your message!'
+        );
+    }
+
     return {
         statusCode: 200,
     };
+}
+
+function parsePacket(data: string): Packet {
+    try {
+        const packet = JSON.parse(data);
+        return packet;
+    } catch (err) {
+        return null;
+    }
 }
 
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
@@ -155,20 +179,9 @@ function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
     };
 }
 
-const encoder = new Encoder();
-
-function encodePacket(packet: Packet): string {
-    let encoded: string;
-    encoder.encode(packet, ([data]) => {
-        encoded = data;
-    });
-
-    return encoded;
-}
-
 function callbackUrl(event: APIGatewayProxyEvent): string {
     const domain = event.requestContext.domainName;
-    const path = event.requestContext.path;
+    const path = event.requestContext.stage;
     return `https://${domain}/${path}`;
 }
 

@@ -20,7 +20,6 @@ provider:
     apiGateway:
         shouldStartNameWithService: true
         minimumCompressionSize: 1024
-    websocketsApiName: casual-apiary
     environment:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
     iamRoleStatements:
@@ -41,17 +40,17 @@ functions:
         handler: handler.connect
         events:
             - websocket:
-              route: $connect
+                  route: $connect
     disconnect:
         handler: handler.disconnect
         events:
             - websocket:
-              route: $disconnect
+                  route: $disconnect
     message:
         handler: handler.message
         events:
             - websocket:
-              route: $default
+                  route: $default
 resources:
     Resources:
         AtomsTable:
