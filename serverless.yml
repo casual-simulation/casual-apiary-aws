@@ -48,6 +48,12 @@ functions:
             - http:
                   method: post
                   path: write
+    read:
+        handler: handler.read
+        events:
+            - http:
+                  method: get
+                  path: read
 
 resources:
     Resources:
