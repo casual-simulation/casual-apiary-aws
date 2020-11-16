@@ -1,6 +1,21 @@
-# Casual Apiary AWS
-
-A Serverless AWS project that can host many CasualOS instances at once.
+<div align="center">
+    <img alt="Casual Simulation Logo" src="./.github/images/casual-sim-logo.gif" width="180"/>
+    <br/>
+    <br/>
+    <a href="https://github.com/casual-simulation/casual-apiary-aws/issues">
+        <img alt="GitHub Issues" src="https://img.shields.io/github/issues/casual-simulation/casual-apiary-aws.svg">
+    </a>
+    <a href="https://github.com/casual-simulation/casual-apiary-aws/blob/develop/LICENSE.txt">
+        <img alt="MIT License" src="https://img.shields.io/github/license/casual-simulation/casual-apiary-aws.svg">
+    </a>
+    <a href="https://github.com/casual-simulation/casual-apiary-aws/actions">
+        <img alt="Gitlab pipeline status" src="https://img.shields.io/gitlab/pipeline/casual-simulation/casual-apiary-aws/main">
+    </a>
+    <h1>Casual Apiary AWS</h1>
+    <p>
+        A Serverless AWS project that can host many CasualOS instances at once.
+    </p>
+</div>
 
 ## Setup
 
