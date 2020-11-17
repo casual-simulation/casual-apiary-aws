@@ -1,6 +1,6 @@
 service: 'casual-apiary-aws'
-org: 'kallyngowdy'
-app: 'casual-apiary'
+org: casualsimulation
+app: casual-apiary
 
 frameworkVersion: '2'
 
@@ -9,9 +9,13 @@ custom:
     webpack:
         webpackConfig: './webpack.config.js'
         includeModules: true
+    serverless-offline:
+        httpPort: 4000
+        websocketPort: 4001
+        lambdaPort: 4002
 
 # Add the serverless-webpack plugin
-plugins: ['serverless-webpack']
+plugins: ['serverless-webpack', 'serverless-offline']
 
 provider:
     name: aws

@@ -180,6 +180,9 @@ function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {
+    if (process.env.IS_OFFLINE) {
+        return 'http://localhost:4001';
+    }
     const domain = event.requestContext.domainName;
     const path = event.requestContext.stage;
     return `https://${domain}/${path}`;
@@ -191,6 +194,7 @@ async function sendMessageToClient(
     payload: string
 ) {
     const api = new ApiGatewayManagementApi({
+        apiVersion: '2018-11-29',
         endpoint: url,
     });
     await api
