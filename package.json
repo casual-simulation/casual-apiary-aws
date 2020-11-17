@@ -5,6 +5,7 @@
     "description": "Serverless CasualOS on AWS",
     "main": "handler.js",
     "scripts": {
+        "start": "serverless offline start",
         "test:watch": "jest --watchAll",
         "test": "jest --verbose",
         "test:ci": "jest --no-cache --ci --reporters=default"
