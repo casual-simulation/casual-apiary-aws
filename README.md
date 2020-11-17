@@ -31,13 +31,27 @@ $ npm install -g serverless
 $ yarn
 ```
 
-3. Make sure you have the [AWS CLI](https://aws.amazon.com/cli/) and [the `casualsimulation` profile is configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-profiles):
+3. Install [DynamoDB Local](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html)
+
+```bash
+$ serverless dynamodb install
+```
+
+4. Start running.
+
+```bash
+$ serverless offline start
+```
+
+## Deployment
+
+1. Make sure you have the [AWS CLI](https://aws.amazon.com/cli/) and [the `casualsimulation` profile is configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-profiles):
 
 ```bash
 $ aws configure --profile casualsimulation
 ```
 
-4. Deploy to AWS
+2. Deploy to AWS
 
 ```bash
 $ serverless deploy

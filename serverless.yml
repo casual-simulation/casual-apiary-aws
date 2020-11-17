@@ -13,9 +13,15 @@ custom:
         httpPort: 4000
         websocketPort: 4001
         lambdaPort: 4002
+    dynamodb:
+        stages:
+            - dev
+        start:
+            migrate: true
 
 # Add the serverless-webpack plugin
-plugins: ['serverless-webpack', 'serverless-offline']
+plugins:
+    ['serverless-webpack', 'serverless-dynamodb-local', 'serverless-offline']
 
 provider:
     name: aws

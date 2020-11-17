@@ -46,7 +46,7 @@ export async function write(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
-    const client = new AWS.DynamoDB.DocumentClient();
+    const client = getDocumentClient();
     const botAtom = atom(atomId(uuid(), 1), null, bot(uuid()));
     const item = formatAtom(DEFAULT_NAMESPACE, botAtom);
 
@@ -66,7 +66,7 @@ export async function read(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
-    const client = new AWS.DynamoDB.DocumentClient();
+    const client = getDocumentClient();
     let result = await client
         .query({
             TableName: ATOMS_TABLE_NAME,
@@ -203,4 +203,19 @@ async function sendMessageToClient(
             Data: payload,
         })
         .promise();
+}
+
+function getDocumentClient() {
+    if (isOffline()) {
+        return new AWS.DynamoDB.DocumentClient({
+            region: 'localhost',
+            endpoint: 'http://localhost:8000',
+        });
+    } else {
+        return new AWS.DynamoDB.DocumentClient();
+    }
+}
+
+function isOffline(): boolean {
+    return !!process.env.IS_OFFLINE;
 }
