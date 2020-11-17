@@ -80,16 +80,20 @@ resources:
                 ProvisionedThroughput:
                     ReadCapacityUnits: 1
                     WriteCapacityUnits: 1
-        # ConnectionsTable:
-        #     Type: AWS::DynamoDB::Table
-        #     Properties:
-        #         TableName: ConnectionsTable
-        #         AttributeDefinitions:
-        #             - AttributeName: connectionId
-        #               AttributeType: S
-        #         KeySchema:
-        #             - AttributeName: connectionId
-        #               KeyType: HASH
-        #     ProvisionedThroughput:
-        #         ReadCapacityUnits: 1
-        #         WriteCapacityUnits: 1
+        MessagesTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: MessagesTable
+                AttributeDefinitions:
+                    - AttributeName: connectionId
+                      AttributeType: S
+                    - AttributeName: sequenceNumber
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: connectionId
+                      KeyType: HASH
+                    - AttributeName: sequenceNumber
+                      KeyType: RANGE
+                ProvisionedThroughput:
+                    ReadCapacityUnits: 1
+                    WriteCapacityUnits: 1

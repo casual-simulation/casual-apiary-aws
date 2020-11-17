@@ -16,7 +16,19 @@ import {
     atomIdToString,
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
-import { Packet } from './src/Events';
+import { LoginPacket, LoginResultPacket, Packet } from './src/Events';
+import { getDocumentClient } from './src/Utils';
+import { fromByteArray, toByteArray } from 'base64-js';
+import {
+    decode,
+    encode,
+    getCurrentSequenceNumber,
+    getStartSequenceNumber,
+    getTotalMessageCount,
+    isPartialMessage,
+} from './src/BinaryEncoder';
+import { add } from 'lodash';
+import { AwsSocketHandler, MAX_MESSAGE_SIZE } from './src/AwsSocketHandler';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
     return {
@@ -34,6 +46,7 @@ export const hello: APIGatewayProxyHandler = async (event, _context) => {
 };
 
 const ATOMS_TABLE_NAME = 'AtomsTable';
+const MESSAGES_TABLE_NAME = 'MessagesTable';
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
 
 interface DynamoAtom {
@@ -135,31 +148,180 @@ export async function message(
         event.body
     );
 
-    const packet = parsePacket(event.body);
-
-    if (!packet) {
-        return {
-            statusCode: 400,
-        };
+    let data: Uint8Array;
+    try {
+        data = toByteArray(event.body);
+    } catch (ex) {
+        // Not base64 data so we can handle the message immediately
+        return event;
     }
 
-    if (packet.type === 'login') {
-        await sendMessageToClient(
-            callbackUrl(event),
-            event.requestContext.connectionId,
-            'Got your login!'
+    if (isPartialMessage(data)) {
+        const connectionId = event.requestContext.connectionId;
+        const view = new DataView(
+            data.buffer,
+            data.byteOffset,
+            data.byteLength
         );
-    } else if (packet.type === 'message') {
-        await sendMessageToClient(
-            callbackUrl(event),
-            event.requestContext.connectionId,
-            'Got your message!'
+        const startSequenceNumber = getStartSequenceNumber(view);
+        const totalMessageCount = getTotalMessageCount(view);
+        const endSequenceNumber = startSequenceNumber + totalMessageCount;
+        const sequenceNumber = getCurrentSequenceNumber(view);
+        const messageCount = await countCurrentPackets(
+            connectionId,
+            startSequenceNumber,
+            endSequenceNumber
         );
+
+        if (messageCount >= totalMessageCount) {
+            const currentItems = await getCurrentPackets(
+                connectionId,
+                startSequenceNumber,
+                endSequenceNumber
+            );
+
+            let datas = [] as Uint8Array[];
+            let addedCurrentMessage = false;
+            for (let i = 0; i < currentItems.length; i++) {
+                const item = currentItems[i];
+
+                if (
+                    !addedCurrentMessage &&
+                    item.sequenceNumber > sequenceNumber
+                ) {
+                    addedCurrentMessage = true;
+                    datas.push(data);
+                }
+
+                datas.push(toByteArray(item.data));
+            }
+
+            const decoded = decode(datas);
+            await processMessage(event, decoded);
+        } else {
+            await savePacket({
+                connectionId: connectionId,
+                sequenceNumber: sequenceNumber,
+                data: fromByteArray(data),
+            });
+        }
+    } else {
+        const decoded = decode(data);
+        await processMessage(event, decoded);
     }
 
     return {
         statusCode: 200,
     };
+}
+
+async function processMessage(event: APIGatewayProxyEvent, message: string) {
+    console.log('Got Message: ', message);
+
+    const packet = parsePacket(message);
+
+    if (packet) {
+        if (packet.type === 'login') {
+            await login(event, packet);
+        }
+    }
+}
+
+async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
+    const result: LoginResultPacket = {
+        type: 'login_result',
+    };
+
+    await sendPacket(event, result);
+}
+
+async function savePacket(packet: WebSocketPacket) {
+    const client = getDocumentClient();
+
+    await client
+        .put({
+            TableName: MESSAGES_TABLE_NAME,
+            Item: packet,
+        })
+        .promise();
+}
+
+async function countCurrentPackets(
+    connectionId: string,
+    startSequenceNumber: number,
+    endSequenceNumber: number
+): Promise<number> {
+    const client = getDocumentClient();
+
+    const response = await client
+        .query({
+            TableName: MESSAGES_TABLE_NAME,
+            Select: 'COUNT',
+            KeyConditionExpression:
+                'connectionId = :connectionId and sequenceNumber >= :startSequenceNumber and sequenceNumber <= :endSequenceNumber',
+            ExpressionAttributeValues: {
+                ':connectionId': connectionId,
+                ':startSequenceNumber': startSequenceNumber,
+                ':endSequenceNumber': endSequenceNumber,
+            },
+        })
+        .promise();
+
+    return response.Count;
+}
+
+async function getCurrentPackets(
+    connectionId: string,
+    startSequenceNumber: number,
+    endSequenceNumber: number
+): Promise<WebSocketRetrievedPacket[]> {
+    const client = getDocumentClient();
+
+    let result = await client
+        .query({
+            TableName: MESSAGES_TABLE_NAME,
+            ProjectionExpression: 'sequenceNumber,data',
+            KeyConditionExpression:
+                'connectionId = :connectionId and sequenceNumber >= :startSequenceNumber and sequenceNumber <= :endSequenceNumber',
+            ExpressionAttributeValues: {
+                ':connectionId': connectionId,
+                ':startSequenceNumber': startSequenceNumber,
+                ':endSequenceNumber': endSequenceNumber,
+            },
+        })
+        .promise();
+
+    let datas = [] as WebSocketRetrievedPacket[];
+    while (result?.$response.data) {
+        for (let item of result.$response.data.Items) {
+            datas.push(item as WebSocketRetrievedPacket);
+        }
+
+        if (result.$response.hasNextPage()) {
+            const request = result.$response.nextPage();
+            if (request) {
+                result = await request.promise();
+                continue;
+            }
+        }
+        result = null;
+    }
+
+    return datas;
+}
+
+function sendPacket(event: APIGatewayProxyEvent, packet: Packet) {
+    const messages = encodePacket(packet);
+    const endpoint = callbackUrl(event);
+    const promises = messages.map((message) => {
+        return sendMessageToClient(
+            endpoint,
+            event.requestContext.connectionId,
+            message
+        );
+    });
+
+    return Promise.all(promises);
 }
 
 function parsePacket(data: string): Packet {
@@ -169,6 +331,14 @@ function parsePacket(data: string): Packet {
     } catch (err) {
         return null;
     }
+}
+
+function encodePacket(packet: Packet): string[] {
+    const json = JSON.stringify(packet);
+    const handler = new AwsSocketHandler(MAX_MESSAGE_SIZE);
+
+    const messages = handler.encode(json, 0);
+    return messages;
 }
 
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
@@ -205,17 +375,13 @@ async function sendMessageToClient(
         .promise();
 }
 
-function getDocumentClient() {
-    if (isOffline()) {
-        return new AWS.DynamoDB.DocumentClient({
-            region: 'localhost',
-            endpoint: 'http://localhost:8000',
-        });
-    } else {
-        return new AWS.DynamoDB.DocumentClient();
-    }
+interface WebSocketPacket {
+    connectionId: string;
+    sequenceNumber: number;
+    data: string;
 }
 
-function isOffline(): boolean {
-    return !!process.env.IS_OFFLINE;
+interface WebSocketRetrievedPacket {
+    sequenceNumber: number;
+    data: string;
 }
