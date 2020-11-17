@@ -8,8 +8,8 @@
     <a href="https://github.com/casual-simulation/casual-apiary-aws/blob/develop/LICENSE.txt">
         <img alt="MIT License" src="https://img.shields.io/github/license/casual-simulation/casual-apiary-aws.svg">
     </a>
-    <a href="https://github.com/casual-simulation/casual-apiary-aws/actions">
-        <img alt="Gitlab pipeline status" src="https://img.shields.io/gitlab/pipeline/casual-simulation/casual-apiary-aws/main">
+    <a href="https://actions-badge.atrox.dev/casual-simulation/casual-apiary-aws/goto?ref=main">
+        <img alt="Build Status" src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fcasual-simulation%2Fcasual-apiary-aws%2Fbadge%3Fref%3Dmain&style=flat" />
     </a>
     <h1>Casual Apiary AWS</h1>
     <p>
