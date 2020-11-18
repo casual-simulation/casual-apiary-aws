@@ -17,18 +17,22 @@ import {
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
 import { LoginPacket, LoginResultPacket, Packet } from './src/Events';
-import { getDocumentClient } from './src/Utils';
-import { fromByteArray, toByteArray } from 'base64-js';
 import {
-    decode,
-    encode,
-    getCurrentSequenceNumber,
-    getStartSequenceNumber,
-    getTotalMessageCount,
-    isPartialMessage,
-} from './src/BinaryEncoder';
-import { add } from 'lodash';
-import { AwsSocketHandler, MAX_MESSAGE_SIZE } from './src/AwsSocketHandler';
+    downloadObject,
+    getDocumentClient,
+    getMessageUploadUrl,
+    getS3Client,
+    MESSAGES_BUCKET_NAME,
+    parseMessage,
+    uploadMessage,
+} from './src/Utils';
+import {
+    AwsDownloadRequest,
+    AwsMessage,
+    AwsMessageData,
+    AwsUploadRequest,
+    AwsUploadResponse,
+} from './src/AwsMessages';
 
 export const hello: APIGatewayProxyHandler = async (event, _context) => {
     return {
@@ -45,8 +49,9 @@ export const hello: APIGatewayProxyHandler = async (event, _context) => {
     };
 };
 
+export const MAX_MESSAGE_SIZE = 128_000;
+
 const ATOMS_TABLE_NAME = 'AtomsTable';
-const MESSAGES_TABLE_NAME = 'MessagesTable';
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
 
 interface DynamoAtom {
@@ -148,66 +153,19 @@ export async function message(
         event.body
     );
 
-    let data: Uint8Array;
-    try {
-        data = toByteArray(event.body);
-    } catch (ex) {
-        // Not base64 data so we can handle the message immediately
-        return event;
-    }
+    const message = parseMessage<AwsMessage>(event.body);
 
-    if (isPartialMessage(data)) {
-        const connectionId = event.requestContext.connectionId;
-        const view = new DataView(
-            data.buffer,
-            data.byteOffset,
-            data.byteLength
-        );
-        const startSequenceNumber = getStartSequenceNumber(view);
-        const totalMessageCount = getTotalMessageCount(view);
-        const endSequenceNumber = startSequenceNumber + totalMessageCount;
-        const sequenceNumber = getCurrentSequenceNumber(view);
-        const messageCount = await countCurrentPackets(
-            connectionId,
-            startSequenceNumber,
-            endSequenceNumber
-        );
-
-        if (messageCount >= totalMessageCount) {
-            const currentItems = await getCurrentPackets(
-                connectionId,
-                startSequenceNumber,
-                endSequenceNumber
-            );
-
-            let datas = [] as Uint8Array[];
-            let addedCurrentMessage = false;
-            for (let i = 0; i < currentItems.length; i++) {
-                const item = currentItems[i];
-
-                if (
-                    !addedCurrentMessage &&
-                    item.sequenceNumber > sequenceNumber
-                ) {
-                    addedCurrentMessage = true;
-                    datas.push(data);
-                }
-
-                datas.push(toByteArray(item.data));
+    if (message) {
+        if (message.type === 'message') {
+            const packet = parseMessage<Packet>(message.data);
+            if (packet) {
+                await processPacket(event, packet);
             }
-
-            const decoded = decode(datas);
-            await processMessage(event, decoded);
-        } else {
-            await savePacket({
-                connectionId: connectionId,
-                sequenceNumber: sequenceNumber,
-                data: fromByteArray(data),
-            });
+        } else if (message.type === 'upload_request') {
+            await processUpload(event, message);
+        } else if (message.type === 'download_request') {
+            await processDownload(event, message);
         }
-    } else {
-        const decoded = decode(data);
-        await processMessage(event, decoded);
     }
 
     return {
@@ -215,16 +173,42 @@ export async function message(
     };
 }
 
-async function processMessage(event: APIGatewayProxyEvent, message: string) {
+async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
     console.log('Got Message: ', message);
-
-    const packet = parsePacket(message);
 
     if (packet) {
         if (packet.type === 'login') {
             await login(event, packet);
         }
     }
+}
+
+export async function processUpload(
+    event: APIGatewayProxyEvent,
+    message: AwsUploadRequest
+) {
+    const uploadUrl = await getMessageUploadUrl();
+
+    const response: AwsUploadResponse = {
+        type: 'upload_response',
+        id: message.id,
+        uploadUrl: uploadUrl,
+    };
+
+    await sendMessageToClient(
+        callbackUrl(event),
+        event.requestContext.connectionId,
+        JSON.stringify(response)
+    );
+}
+
+export async function processDownload(
+    event: APIGatewayProxyEvent,
+    message: AwsDownloadRequest
+) {
+    const data = await downloadObject(message.url);
+    const packet = parseMessage<Packet>(data);
+    await processPacket(event, packet);
 }
 
 async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
@@ -235,118 +219,47 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
     await sendPacket(event, result);
 }
 
-async function savePacket(packet: WebSocketPacket) {
-    const client = getDocumentClient();
-
-    await client
-        .put({
-            TableName: MESSAGES_TABLE_NAME,
-            Item: packet,
-        })
-        .promise();
-}
-
-async function countCurrentPackets(
-    connectionId: string,
-    startSequenceNumber: number,
-    endSequenceNumber: number
-): Promise<number> {
-    const client = getDocumentClient();
-
-    const response = await client
-        .query({
-            TableName: MESSAGES_TABLE_NAME,
-            Select: 'COUNT',
-            KeyConditionExpression:
-                'connectionId = :connectionId and sequenceNumber >= :startSequenceNumber and sequenceNumber <= :endSequenceNumber',
-            ExpressionAttributeValues: {
-                ':connectionId': connectionId,
-                ':startSequenceNumber': startSequenceNumber,
-                ':endSequenceNumber': endSequenceNumber,
-            },
-        })
-        .promise();
-
-    return response.Count;
-}
-
-async function getCurrentPackets(
-    connectionId: string,
-    startSequenceNumber: number,
-    endSequenceNumber: number
-): Promise<WebSocketRetrievedPacket[]> {
-    const client = getDocumentClient();
-
-    let result = await client
-        .query({
-            TableName: MESSAGES_TABLE_NAME,
-            ProjectionExpression: 'sequenceNumber,data',
-            KeyConditionExpression:
-                'connectionId = :connectionId and sequenceNumber >= :startSequenceNumber and sequenceNumber <= :endSequenceNumber',
-            ExpressionAttributeValues: {
-                ':connectionId': connectionId,
-                ':startSequenceNumber': startSequenceNumber,
-                ':endSequenceNumber': endSequenceNumber,
-            },
-        })
-        .promise();
-
-    let datas = [] as WebSocketRetrievedPacket[];
-    while (result?.$response.data) {
-        for (let item of result.$response.data.Items) {
-            datas.push(item as WebSocketRetrievedPacket);
-        }
-
-        if (result.$response.hasNextPage()) {
-            const request = result.$response.nextPage();
-            if (request) {
-                result = await request.promise();
-                continue;
-            }
-        }
-        result = null;
-    }
-
-    return datas;
-}
-
-function sendPacket(event: APIGatewayProxyEvent, packet: Packet) {
-    const messages = encodePacket(packet);
-    const endpoint = callbackUrl(event);
-    const promises = messages.map((message) => {
-        return sendMessageToClient(
-            endpoint,
-            event.requestContext.connectionId,
-            message
-        );
-    });
-
-    return Promise.all(promises);
-}
-
-function parsePacket(data: string): Packet {
-    try {
-        const packet = JSON.parse(data);
-        return packet;
-    } catch (err) {
-        return null;
-    }
-}
-
-function encodePacket(packet: Packet): string[] {
-    const json = JSON.stringify(packet);
-    const handler = new AwsSocketHandler(MAX_MESSAGE_SIZE);
-
-    const messages = handler.encode(json, 0);
-    return messages;
-}
-
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
     return {
         namespace,
         atomId: atomIdToString(atom.id),
         atomJson: JSON.stringify(atom),
     };
+}
+
+function sendPacket(event: APIGatewayProxyEvent, packet: Packet) {
+    return sendData(event, JSON.stringify(packet));
+}
+
+async function sendData(event: APIGatewayProxyEvent, data: string) {
+    // TODO: Calculate the real message size instead of just assuming that
+    // each character is 1 byte
+    if (data.length > MAX_MESSAGE_SIZE) {
+        const url = await uploadMessage(data);
+
+        // Request download
+        const downloadRequest: AwsDownloadRequest = {
+            type: 'download_request',
+            url: url,
+        };
+
+        await sendMessageToClient(
+            callbackUrl(event),
+            event.requestContext.connectionId,
+            JSON.stringify(downloadRequest)
+        );
+    } else {
+        const message: AwsMessageData = {
+            type: 'message',
+            data: data,
+        };
+
+        await sendMessageToClient(
+            callbackUrl(event),
+            event.requestContext.connectionId,
+            JSON.stringify(message)
+        );
+    }
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {

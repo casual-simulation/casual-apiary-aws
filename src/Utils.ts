@@ -1,4 +1,9 @@
 import AWS from 'aws-sdk';
+import { v4 as uuid } from 'uuid';
+import { AwsMessage } from './AwsMessages';
+import axios from 'axios';
+
+export const MESSAGES_BUCKET_NAME = process.env.MESSAGES_BUCKET;
 
 /**
  * Gets a new instance of a DynamoDB document client.
@@ -27,9 +32,54 @@ export function getS3Client() {
     return new AWS.S3();
 }
 
+export async function uploadMessage(data: string): Promise<string> {
+    const client = getS3Client();
+    const key = uuid();
+    const response = await client
+        .putObject({
+            Bucket: MESSAGES_BUCKET_NAME,
+            Key: key,
+            ContentType: 'application/json',
+            Body: data,
+        })
+        .promise();
+
+    return `https://${MESSAGES_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+}
+
+export async function getMessageUploadUrl(): Promise<string> {
+    const client = getS3Client();
+    const key = uuid();
+    const params: AWS.S3.Types.PutObjectRequest = {
+        Bucket: MESSAGES_BUCKET_NAME,
+        Key: key,
+        ContentType: 'application/json',
+    };
+    const url = await client.getSignedUrlPromise('putObject', params);
+    return url;
+}
+
+export async function downloadObject(url: string): Promise<string> {
+    const response = await axios.get(url);
+    return response.data;
+}
+
 /**
  * Determines if we are running offline with serverless-offline.
  */
 export function isOffline(): boolean {
     return !!process.env.IS_OFFLINE;
+}
+
+/**
+ * Parses the given data into a AWS Message.
+ * @param data The data to parse.
+ */
+export function parseMessage<T>(data: string): T {
+    try {
+        const value = JSON.parse(data);
+        return value;
+    } catch (err) {
+        return null;
+    }
 }

@@ -21,6 +21,7 @@ custom:
     s3:
         host: localhost
         directory: ./.s3
+    messagesBucket: 'aux-messages-bucket-${opt:stage}'
 
 # Add the serverless-webpack plugin
 plugins:
@@ -72,6 +73,8 @@ functions:
                   route: $disconnect
     message:
         handler: handler.message
+        environment:
+            MESSAGES_BUCKET: '${self:custom.messagesBucket}'
         events:
             - websocket:
                   route: $default
@@ -97,7 +100,7 @@ resources:
         MessagesBucket:
             Type: AWS::S3::Bucket
             Properties:
-                BucketName: messages-bucket
+                BucketName: '${self:custom.messagesBucket}'
                 AccessControl: 'PublicRead'
                 LifecycleConfiguration:
                     Rules:
