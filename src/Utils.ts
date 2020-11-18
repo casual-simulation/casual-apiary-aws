@@ -44,7 +44,11 @@ export async function uploadMessage(data: string): Promise<string> {
         })
         .promise();
 
-    return `https://${MESSAGES_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+    if (isOffline()) {
+        return `http://localhost:4569/${key}`;
+    } else {
+        return `https://${MESSAGES_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+    }
 }
 
 export async function getMessageUploadUrl(): Promise<string> {
