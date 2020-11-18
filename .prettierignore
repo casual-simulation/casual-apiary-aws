@@ -10,3 +10,6 @@ jspm_packages
 
 # DynamoDB
 .dynamodb
+
+# S3
+.s3

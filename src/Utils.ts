@@ -15,6 +15,18 @@ export function getDocumentClient() {
     }
 }
 
+export function getS3Client() {
+    if (isOffline()) {
+        return new AWS.S3({
+            s3ForcePathStyle: true,
+            accessKeyId: 'S3RVER',
+            secretAccessKey: 'S3RVER',
+            endpoint: new AWS.Endpoint('http://localhost:8000'),
+        });
+    }
+    return new AWS.S3();
+}
+
 /**
  * Determines if we are running offline with serverless-offline.
  */

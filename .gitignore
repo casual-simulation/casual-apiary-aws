@@ -10,3 +10,8 @@ jspm_packages
 
 # DynamoDB
 .dynamodb
+
+# S3
+/.s3/*
+/.s3/**/*
+!/.s3/.gitkeep

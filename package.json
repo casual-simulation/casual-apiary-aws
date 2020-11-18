@@ -49,7 +49,8 @@
         "jest-environment-node": "^24.1.0",
         "ts-jest": "^24.0.0",
         "serverless-offline": "6.8.0",
-        "serverless-dynamodb-local": "0.2.39"
+        "serverless-dynamodb-local": "0.2.39",
+        "serverless-s3-local": "0.6.7"
     },
     "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
     "license": "MIT"

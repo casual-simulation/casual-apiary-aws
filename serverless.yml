@@ -18,10 +18,18 @@ custom:
             - dev
         start:
             migrate: true
+    s3:
+        host: localhost
+        directory: ./.s3
 
 # Add the serverless-webpack plugin
 plugins:
-    ['serverless-webpack', 'serverless-dynamodb-local', 'serverless-offline']
+    [
+        'serverless-webpack',
+        'serverless-dynamodb-local',
+        'serverless-s3-local',
+        'serverless-offline',
+    ]
 
 provider:
     name: aws
@@ -44,6 +52,12 @@ provider:
               - dynamodb:Scan
               - dynamodb:UpdateItem
           Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/AtomsTable'
+        - Effect: Allow
+          Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DeleteObject
+          Resource: 'arn:aws:s3:::messages-bucket/*'
 
 functions:
     connect:
@@ -80,20 +94,21 @@ resources:
                 ProvisionedThroughput:
                     ReadCapacityUnits: 1
                     WriteCapacityUnits: 1
-        MessagesTable:
-            Type: AWS::DynamoDB::Table
+        MessagesBucket:
+            Type: AWS::S3::Bucket
             Properties:
-                TableName: MessagesTable
-                AttributeDefinitions:
-                    - AttributeName: connectionId
-                      AttributeType: S
-                    - AttributeName: sequenceNumber
-                      AttributeType: S
-                KeySchema:
-                    - AttributeName: connectionId
-                      KeyType: HASH
-                    - AttributeName: sequenceNumber
-                      KeyType: RANGE
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
+                BucketName: messages-bucket
+                AccessControl: 'PublicRead'
+                LifecycleConfiguration:
+                    Rules:
+                        - ID: 'CleanupRule'
+                          Prefix: ''
+                          Status: Enabled
+                          ExpirationInDays: 1
+                CorsConfiguration:
+                    CorsRules:
+                        - ID: 'AllowReadWriteCorsRule'
+                          AllowedMethods: ['GET', 'PUT']
+                          AllowedOrigins: ['*']
+                          AllowedHeaders: ['*']
+                          MaxAge: '3600'
