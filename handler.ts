@@ -14,9 +14,16 @@ import {
     atom,
     atomId,
     atomIdToString,
+    CausalRepoMessageHandlerMethods,
+    WATCH_BRANCH,
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
-import { LoginPacket, LoginResultPacket, Packet } from './src/Events';
+import {
+    LoginPacket,
+    LoginResultPacket,
+    MessagePacket,
+    Packet,
+} from './src/Events';
 import {
     downloadObject,
     getDocumentClient,
@@ -174,11 +181,13 @@ export async function message(
 }
 
 async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
-    console.log('Got Message: ', message);
+    console.log('Got Message: ', packet);
 
     if (packet) {
         if (packet.type === 'login') {
             await login(event, packet);
+        } else if (packet.type === 'message') {
+            await messagePacket(event, packet);
         }
     }
 }
@@ -217,6 +226,15 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
     };
 
     await sendPacket(event, result);
+}
+
+async function messagePacket(
+    event: APIGatewayProxyEvent,
+    packet: MessagePacket
+) {
+    handleEvents(packet, {
+        [WATCH_BRANCH]: async (watchBranchEvent) => {},
+    });
 }
 
 function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
@@ -286,6 +304,19 @@ async function sendMessageToClient(
             Data: payload,
         })
         .promise();
+}
+
+function handleEvents(
+    message: MessagePacket,
+    handlers: Partial<CausalRepoMessageHandlerMethods>
+): any {
+    const handler = handlers[message.channel];
+
+    if (handler) {
+        return handler(message);
+    }
+
+    return undefined;
 }
 
 interface WebSocketPacket {
