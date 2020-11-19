@@ -1,97 +1,25 @@
 import {
-    DeviceInfo,
-    RemoteAction,
-    RealtimeChannelInfo,
-    SESSION_ID_CLAIM,
-    device as deviceEvent,
-    DeviceSelector,
-    RemoteActionResult,
-    deviceResult,
-    RemoteActionError,
-    deviceError,
-} from '@casual-simulation/causal-trees';
-import {
-    CausalRepoStore,
-    CausalRepo,
-    CausalRepoBranch,
-    Atom,
-    storeData,
-    WATCH_BRANCH,
+    AddAtomsEvent,
     ADD_ATOMS,
     ATOMS_RECEIVED,
-    UNWATCH_BRANCH,
-    WATCH_BRANCHES,
-    WATCH_DEVICES,
-    DEVICE_CONNECTED_TO_BRANCH,
-    DEVICE_DISCONNECTED_FROM_BRANCH,
-    LOAD_BRANCH,
-    UNLOAD_BRANCH,
-    BRANCH_INFO,
-    AddAtomsEvent,
-    CausalRepoSession,
-    CausalRepoStageStore,
-    SEND_EVENT,
-    RECEIVE_EVENT,
-    BRANCHES,
-    COMMIT,
-    WATCH_COMMITS,
-    loadCommit,
-    listCommits,
-    AddCommitsEvent,
-    ADD_COMMITS,
-    CHECKOUT,
-    calculateDiff,
-    calculateCommitDiff,
-    RESTORE,
-    commit,
-    CommitEvent,
-    CausalRepoCommit,
-    CommitData,
-    CheckoutEvent,
-    GenericSession,
-    CausalRepoMessageHandlerMethods,
-    UNWATCH_BRANCHES,
-    UNWATCH_DEVICES,
-    UNWATCH_COMMITS,
-    GET_BRANCH,
-    DEVICES,
-    MemoryCausalRepoStore,
+    DeviceSelector,
     WatchBranchEvent,
-    WATCH_BRANCH_DEVICES,
-    UNWATCH_BRANCH_DEVICES,
-    BRANCHES_STATUS,
-    COMMIT_CREATED,
-    RESTORED,
-    DisconnectionReason,
-    UnwatchReason,
-    Weave,
-    ResetEvent,
-    RESET,
-    SET_BRANCH_PASSWORD,
-    AUTHENTICATE_BRANCH_WRITES,
-    CausalRepoBranchSettings,
-    branchSettings,
-    AUTHENTICATED_TO_BRANCH,
-    AuthenticatedToBranchEvent,
-} from '@casual-simulation/causal-trees/core2';
-// import { ConnectionServer, Connection } from './ConnectionServer';
-// import { devicesForEvent } from './DeviceManagerHelpers';
-import { map, concatMap } from 'rxjs/operators';
-import { Observable, merge } from 'rxjs';
-import orderBy from 'lodash/orderBy';
+} from '@casual-simulation/causal-trees';
 import { ApiaryAtomStore } from './ApiaryAtomStore';
+// import { ApiaryAtomStore } from './ApiaryAtomStore';
 import {
     ApiaryConnectionStore,
     DeviceConnection,
 } from './ApiaryConnectionStore';
-// import { verifyPassword, hashPassword } from '../crypto';
-
+import { ApiaryMessenger } from './ApiaryMessenger';
+import { MessagePacket } from './Events';
 /**
  * Defines a class that is able to serve causal repos in realtime.
  */
 export class CausalRepoServer {
     private _atomStore: ApiaryAtomStore;
     private _connectionStore: ApiaryConnectionStore;
+    private _messenger: ApiaryMessenger;
 
     // private _connectionServer: ConnectionServer;
     // private _deviceManager: DeviceManager;
@@ -123,10 +51,12 @@ export class CausalRepoServer {
 
     constructor(
         connectionStore: ApiaryConnectionStore,
-        atomStore: ApiaryAtomStore
+        atomStore: ApiaryAtomStore,
+        messenger: ApiaryMessenger
     ) {
         this._connectionStore = connectionStore;
         this._atomStore = atomStore;
+        this._messenger = messenger;
         // this._connectionServer = server;
         // this._store = store;
         // this._deviceManager = new DeviceManagerImpl();
@@ -143,7 +73,115 @@ export class CausalRepoServer {
         this._setupServer();
     }
 
-    async connect(connection: DeviceConnection): Promise<void> {}
+    async connect(connection: DeviceConnection): Promise<void> {
+        await this._connectionStore.saveConnection(connection);
+    }
+
+    async disconnect(connectionId: string) {
+        const loadedConnections = await this._connectionStore.getConnections(
+            connectionId
+        );
+        await this._connectionStore.clearConnection(connectionId);
+
+        for (let connection of loadedConnections) {
+            if (connection.temporary) {
+                const count = await this._connectionStore.countConnectionsByNamespace(
+                    connection.namespace
+                );
+
+                if (count <= 0) {
+                    // unload namespace
+                    await this._atomStore.clearNamespace(connection.namespace);
+                }
+            }
+        }
+    }
+
+    async handlePacket(connectionId: string, packet: MessagePacket) {}
+
+    async watchBranch(connectionId: string, event: WatchBranchEvent) {
+        if (!event) {
+            console.warn(
+                '[CasualRepoServer] Trying to watch branch with a null event!'
+            );
+            return;
+        }
+
+        const branch = event.branch;
+        console.log(`[CausalRepoServer] [${branch}] [${connectionId}] Watch`);
+
+        const connection = await this._connectionStore.getConnection(
+            connectionId
+        );
+        await this._connectionStore.saveNamespaceConnection({
+            ...connection,
+            namespace: branch,
+            temporary: event.temporary || false,
+        });
+
+        const atoms = await this._atomStore.loadAtoms(branch);
+        this._messenger.sendMessage([connection.connectionId], {
+            name: ADD_ATOMS,
+            data: {
+                branch: branch,
+                atoms: atoms,
+            },
+        });
+    }
+
+    async addAtoms(connectionId: string, event: AddAtomsEvent) {
+        if (!event) {
+            console.warn(
+                '[CasualRepoServer] Trying to add atoms with a null event!'
+            );
+            return;
+        }
+
+        const branch = event.branch;
+        if (event.atoms) {
+            await this._atomStore.saveAtoms(branch, event.atoms);
+        }
+        if (event.removedAtoms) {
+            // TODO:
+        }
+
+        const hasAdded = event.atoms && event.atoms.length > 0;
+        const hasRemoved = event.removedAtoms && event.removedAtoms.length > 0;
+        if (hasAdded || hasRemoved) {
+            const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
+                branch
+            );
+
+            let ret: AddAtomsEvent = {
+                branch,
+            };
+
+            if (hasAdded) {
+                ret.atoms = event.atoms;
+            }
+            if (hasRemoved) {
+                ret.removedAtoms = event.removedAtoms;
+            }
+
+            await this._messenger.sendMessage(
+                connectedDevices.map((c) => c.connectionId),
+                {
+                    name: ADD_ATOMS,
+                    data: ret,
+                }
+            );
+        }
+
+        const addedAtomHashes = (event.atoms || []).map((a) => a.hash);
+        const removedAtomHashes = event.removedAtoms || [];
+        await this._messenger.sendMessage([connectionId], {
+            name: ATOMS_RECEIVED,
+            data: {
+                branch: branch,
+                hashes: [...addedAtomHashes, ...removedAtomHashes],
+            },
+        });
+    }
 
     private _setupServer() {
         // this._connectionServer.connection.subscribe(

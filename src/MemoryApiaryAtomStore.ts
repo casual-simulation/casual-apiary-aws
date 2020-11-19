@@ -1,5 +1,5 @@
 import { Atom } from '@casual-simulation/causal-trees';
-import { sortedIndexBy } from 'lodash';
+import { sortBy, sortedIndexBy } from 'lodash';
 import { ApiaryAtomStore } from './ApiaryAtomStore';
 
 /**
@@ -24,7 +24,7 @@ export class MemoryApiaryAtomStore implements ApiaryAtomStore {
     }
 
     async loadAtoms(namespace: string): Promise<Atom<any>[]> {
-        return this._getAtomList(namespace);
+        return sortBy(this._getAtomList(namespace), (a) => a.id.timestamp);
     }
 
     async deleteAtoms(namespace: string, atoms: Atom<any>[]): Promise<void> {

@@ -118,6 +118,16 @@ export class MemoryApiaryConnectionStore implements ApiaryConnectionStore {
         return this._getNamespaceList(namespace);
     }
 
+    async countConnectionsByNamespace(namespace: string): Promise<number> {
+        return this._getNamespaceList(namespace).length;
+    }
+
+    async getConnections(
+        connectionId: string
+    ): Promise<DeviceNamespaceConnection[]> {
+        return this._getConnectionList(connectionId);
+    }
+
     async getConnection(connectionId: string): Promise<DeviceConnection> {
         return this._connections.get(connectionId);
     }

@@ -41,10 +41,21 @@ export interface ApiaryConnectionStore {
     ): Promise<DeviceNamespaceConnection[]>;
 
     /**
+     * Counts the number of active connections for the given namespace.
+     */
+    countConnectionsByNamespace(namespace: string): Promise<number>;
+
+    /**
      * Gets the given connection with the connection ID.
      * @param connectionId The ID of the connection to get.
      */
     getConnection(connectionId: string): Promise<DeviceConnection>;
+
+    /**
+     * Gets the list of connections that are present for the given connection ID.
+     * @param connectionId The ID of the connection.
+     */
+    getConnections(connectionId: string): Promise<DeviceNamespaceConnection[]>;
 }
 
 /**
@@ -80,4 +91,9 @@ export interface DeviceNamespaceConnection extends DeviceConnection {
      * The namespace that the device is connected to.
      */
     namespace: string;
+
+    /**
+     * Whether the data stored by the connection is supposed to be temporary.
+     */
+    temporary: boolean;
 }
