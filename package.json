@@ -8,7 +8,8 @@
         "start": "serverless offline start --stage dev",
         "test:watch": "jest --watchAll",
         "test": "jest --verbose",
-        "test:ci": "jest --no-cache --ci --reporters=default"
+        "test:ci": "jest --no-cache --ci --reporters=default",
+        "dynamodb:install": "serverless dynamodb install --stage dev"
     },
     "husky": {
         "hooks": {

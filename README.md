@@ -34,7 +34,7 @@ $ yarn
 3. Install [DynamoDB Local](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html)
 
 ```bash
-$ serverless dynamodb install
+$ yarn dynamodb:install
 ```
 
 4. Start running.
