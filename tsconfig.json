@@ -8,6 +8,7 @@
         "sourceMap": true,
         "target": "es2017",
         "outDir": "lib",
+        "allowJs": true,
         "esModuleInterop": true,
         "typeRoots": ["./typings", "./node_modules/@types"]
     },
@@ -17,6 +18,8 @@
         ".serverless/**/*",
         ".webpack/**/*",
         "_warmup/**/*",
-        ".vscode/**/*"
+        ".vscode/**/*",
+        ".s3/**/*",
+        ".dynamodb/**/*"
     ]
 }
