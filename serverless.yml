@@ -80,6 +80,7 @@ functions:
                   route: $default
 resources:
     Resources:
+        # A DynamoDB table that groups atoms by namespace
         AtomsTable:
             Type: AWS::DynamoDB::Table
             Properties:
@@ -97,6 +98,39 @@ resources:
                 ProvisionedThroughput:
                     ReadCapacityUnits: 1
                     WriteCapacityUnits: 1
+
+        # A DynamoDB table that groups connections by namespace
+        NamespaceConnectionsTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: NamespaceConnectionsTable
+                AttributeDefinitions:
+                    - AttributeName: namespace
+                      AttributeType: S
+                    - AttributeName: connectionId
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: namespace
+                      KeyType: HASH
+                    - AttributeName: connectionId
+                      KeyType: RANGE
+                ProvisionedThroughput:
+                    ReadCapacityUnits: 1
+                    WriteCapacityUnits: 1
+                GlobalSecondaryIndexes:
+                    - IndexName: ConnectionIdAndNamespaceIndex
+                      KeySchema:
+                          - AttributeName: connectionId
+                            KeyType: HASH
+                          - AttributeName: namespace
+                            KeyType: RANGE
+                      Projection:
+                          ProjectionType: ALL
+                      ProvisionedThroughput:
+                          ReadCapacityUnits: 1
+                          WriteCapacityUnits: 1
+
+        # A S3 bucket that is used to handle large messages (larger than 128KB)
         MessagesBucket:
             Type: AWS::S3::Bucket
             Properties:
