@@ -27,12 +27,11 @@ export class MemoryApiaryAtomStore implements ApiaryAtomStore {
         return sortBy(this._getAtomList(namespace), (a) => a.id.timestamp);
     }
 
-    async deleteAtoms(namespace: string, atoms: Atom<any>[]): Promise<void> {
+    async deleteAtoms(namespace: string, atomHashes: string[]): Promise<void> {
         let list = this._getAtomList(namespace);
-        for (let atom of atoms) {
-            const deleteIndex = sortedIndexBy(list, atom, (a) => a.hash);
-            const found = list[deleteIndex];
-            if (found.hash === atom.hash) {
+        for (let hash of atomHashes) {
+            const deleteIndex = list.findIndex((a) => a.hash === hash);
+            if (deleteIndex >= 0) {
                 list.splice(deleteIndex, 1);
             }
         }

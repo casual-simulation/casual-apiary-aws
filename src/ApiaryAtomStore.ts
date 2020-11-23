@@ -20,9 +20,9 @@ export interface ApiaryAtomStore {
     /**
      * Deletes the given atoms from the given namespace.
      * @param namespace The namespace that the atoms should be deleted from.
-     * @param atoms The atoms that should be deleted.
+     * @param atoms The IDs of the atoms that should be deleted
      */
-    deleteAtoms(namespace: string, atoms: Atom<any>[]): Promise<void>;
+    deleteAtoms(namespace: string, atomHashes: string[]): Promise<void>;
 
     /**
      * Deletes all the atoms in the given namespace.

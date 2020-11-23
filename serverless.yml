@@ -88,12 +88,12 @@ resources:
                 AttributeDefinitions:
                     - AttributeName: namespace
                       AttributeType: S
-                    - AttributeName: atomId
+                    - AttributeName: atomHash
                       AttributeType: S
                 KeySchema:
                     - AttributeName: namespace
                       KeyType: HASH
-                    - AttributeName: atomId
+                    - AttributeName: atomHash
                       KeyType: RANGE
                 ProvisionedThroughput:
                     ReadCapacityUnits: 1
