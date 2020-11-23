@@ -172,7 +172,7 @@ export class CausalRepoServer {
             await this._atomStore.saveAtoms(branch, event.atoms);
         }
         if (event.removedAtoms) {
-            // TODO:
+            await this._atomStore.deleteAtoms(branch, event.removedAtoms);
         }
 
         const hasAdded = event.atoms && event.atoms.length > 0;

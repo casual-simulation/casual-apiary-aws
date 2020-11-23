@@ -12,6 +12,7 @@ import { MemoryApiaryConnectionStore } from './MemoryApiaryConnectionStore';
 import { MemoryApiaryAtomStore } from './MemoryApiaryAtomStore';
 import { DeviceConnection } from './ApiaryConnectionStore';
 import { MemoryApiaryMessenger } from './MemoryApiaryMessenger';
+import { device } from '@casual-simulation/causal-trees';
 // import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
 // import {
 //     hashPassword,
@@ -809,1302 +810,1175 @@ describe('CausalRepoServer', () => {
     //     });
     // });
 
-    // describe(ADD_ATOMS, () => {
-    //     it('should add the given atoms to the given branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should not add atoms that violate cardinality', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(
-    //             atomId('a', 1, undefined, { group: 'abc', number: 1 }),
-    //             null,
-    //             {}
-    //         );
-    //         const a2 = atom(
-    //             atomId('a', 2, undefined, { group: 'abc', number: 1 }),
-    //             null,
-    //             {}
-    //         );
-
-    //         const idx = index();
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [idx, c]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a1, a2],
-    //         });
-
-    //         await waitAsync();
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a1.hash, a2.hash],
-    //                 },
-    //             },
-
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should notify all other devices connected to the branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const device2 = new MemoryConnection(device2Info);
-    //         const joinBranch2 = new Subject<WatchBranchEvent>();
-    //         device2.events.set(WATCH_BRANCH, joinBranch2);
-
-    //         const device3 = new MemoryConnection(device3Info);
-    //         const joinBranch3 = new Subject<WatchBranchEvent>();
-    //         device3.events.set(WATCH_BRANCH, joinBranch3);
-
-    //         connections.connection.next(device);
-    //         connections.connection.next(device2);
-    //         connections.connection.next(device3);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch2.next({
-    //             branch: 'testBranch',
-    //         });
-    //         joinBranch3.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device2.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a3],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device3.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a3],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should not notify the device that sent the new atoms', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should immediately store the added atoms', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toEqual({
-    //             type: 'atom',
-    //             data: a3,
-    //         });
-    //     });
-
-    //     it('should store the given atoms with the current branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const [repoAtom] = await store.getObjects('testBranch', [a3.hash]);
-    //         expect(repoAtom).toEqual({
-    //             type: 'atom',
-    //             data: a3,
-    //         });
-    //     });
-
-    //     it('should not send atoms that are already in the current commit', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const device2 = new MemoryConnection(device2Info);
-    //         const joinBranch2 = new Subject<WatchBranchEvent>();
-    //         device2.events.set(WATCH_BRANCH, joinBranch2);
-
-    //         const device3 = new MemoryConnection(device3Info);
-    //         const joinBranch3 = new Subject<WatchBranchEvent>();
-    //         device3.events.set(WATCH_BRANCH, joinBranch3);
-
-    //         connections.connection.next(device);
-    //         connections.connection.next(device2);
-    //         connections.connection.next(device3);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch2.next({
-    //             branch: 'testBranch',
-    //         });
-    //         joinBranch3.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device2.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device3.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device.messages).toEqual([
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should add the atoms to the stage store', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const stage = await stageStore.getStage('testBranch');
-
-    //         expect(stage).toEqual({
-    //             additions: [a3],
-    //             deletions: {},
-    //         });
-    //     });
-
-    //     it('should remove the given atoms from the given branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const removeAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, removeAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         removeAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should not remove the given atoms if they are part of a cardinality tree', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const removeAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, removeAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(
-    //             atomId('a', 1, undefined, { group: 'abc', number: 1 }),
-    //             null,
-    //             {}
-    //         );
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         removeAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should notify all other devices connected to the branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const removeAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, removeAtoms);
-
-    //         const device2 = new MemoryConnection(device2Info);
-    //         const joinBranch2 = new Subject<WatchBranchEvent>();
-    //         device2.events.set(WATCH_BRANCH, joinBranch2);
-
-    //         const device3 = new MemoryConnection(device3Info);
-    //         const joinBranch3 = new Subject<WatchBranchEvent>();
-    //         device3.events.set(WATCH_BRANCH, joinBranch3);
-
-    //         connections.connection.next(device);
-    //         connections.connection.next(device2);
-    //         connections.connection.next(device3);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch2.next({
-    //             branch: 'testBranch',
-    //         });
-    //         joinBranch3.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         removeAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device2.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     removedAtoms: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device3.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     removedAtoms: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should not notify the device that removed the atoms', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const removeAtoms = new Subject<AddAtomsEvent>();
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(ADD_ATOMS, removeAtoms);
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         removeAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2, a3],
-    //                 },
-    //             },
-
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should not send atoms that were already removed from the current commit', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const removeAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, removeAtoms);
-
-    //         const device2 = new MemoryConnection(device2Info);
-    //         const joinBranch2 = new Subject<WatchBranchEvent>();
-    //         device2.events.set(WATCH_BRANCH, joinBranch2);
-
-    //         const device3 = new MemoryConnection(device3Info);
-    //         const joinBranch3 = new Subject<WatchBranchEvent>();
-    //         device3.events.set(WATCH_BRANCH, joinBranch3);
-
-    //         connections.connection.next(device);
-    //         connections.connection.next(device2);
-    //         connections.connection.next(device3);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch2.next({
-    //             branch: 'testBranch',
-    //         });
-    //         joinBranch3.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         removeAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         expect(device2.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device3.messages).toEqual([
-    //             {
-    //                 name: ADD_ATOMS,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     atoms: [a1, a2],
-    //                 },
-    //             },
-    //         ]);
-
-    //         expect(device.messages).toEqual([
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should add the removed atoms to the stage store', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2, a3);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             a3,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             removedAtoms: [a3.hash],
-    //         });
-
-    //         await waitAsync();
-
-    //         const stage = await stageStore.getStage('testBranch');
-
-    //         expect(stage).toEqual({
-    //             additions: [],
-    //             deletions: {
-    //                 [a3.hash]: atomIdToString(a3.id),
-    //             },
-    //         });
-    //     });
-
-    //     it('should ignore when given an event with a null branch', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: null,
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toBe(null);
-    //     });
-
-    //     it('should not crash if adding atoms to a branch that does not exist', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         connections.connection.next(device);
-
-    //         await waitAsync();
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         addAtoms.next({
-    //             branch: 'abc',
-    //             atoms: [a1, a2, a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toBe(null);
-    //     });
-
-    //     describe('temp', () => {
-    //         it('should not store the given atoms with the current branch', async () => {
-    //             server.init();
-
-    //             const device = new MemoryConnection(device1Info);
-    //             const addAtoms = new Subject<AddAtomsEvent>();
-    //             device.events.set(ADD_ATOMS, addAtoms);
-
-    //             const joinBranch = new Subject<WatchBranchEvent>();
-    //             device.events.set(WATCH_BRANCH, joinBranch);
-
-    //             connections.connection.next(device);
-
-    //             await waitAsync();
-
-    //             joinBranch.next({
-    //                 branch: '@testBranch',
-    //                 temporary: true,
-    //             });
-
-    //             const a1 = atom(atomId('a', 1), null, {});
-    //             const a2 = atom(atomId('a', 2), a1, {});
-    //             const a3 = atom(atomId('a', 3), a2, {});
-
-    //             const idx = index(a1, a2);
-    //             const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //             const b = branch('@testBranch', c);
-
-    //             await storeData(store, '@testBranch', idx.data.hash, [
-    //                 a1,
-    //                 a2,
-    //                 idx,
-    //                 c,
-    //             ]);
-    //             await updateBranch(store, b);
-
-    //             addAtoms.next({
-    //                 branch: '@testBranch',
-    //                 atoms: [a3],
-    //             });
-
-    //             await waitAsync();
-
-    //             const [repoAtom] = await store.getObjects('@testBranch', [
-    //                 a3.hash,
-    //             ]);
-    //             expect(repoAtom).toBeFalsy();
-    //         });
-
-    //         it('should notify all other devices connected to the branch', async () => {
-    //             server.init();
-
-    //             const device = new MemoryConnection(device1Info);
-    //             const addAtoms = new Subject<AddAtomsEvent>();
-    //             device.events.set(ADD_ATOMS, addAtoms);
-
-    //             const device2 = new MemoryConnection(device2Info);
-    //             const joinBranch2 = new Subject<WatchBranchEvent>();
-    //             device2.events.set(WATCH_BRANCH, joinBranch2);
-
-    //             const device3 = new MemoryConnection(device3Info);
-    //             const joinBranch3 = new Subject<WatchBranchEvent>();
-    //             device3.events.set(WATCH_BRANCH, joinBranch3);
-
-    //             connections.connection.next(device);
-    //             connections.connection.next(device2);
-    //             connections.connection.next(device3);
-
-    //             await waitAsync();
-
-    //             const a1 = atom(atomId('a', 1), null, {});
-
-    //             joinBranch2.next({
-    //                 branch: '@testBranch',
-    //                 temporary: true,
-    //             });
-    //             joinBranch3.next({
-    //                 branch: '@testBranch',
-    //                 temporary: true,
-    //             });
-
-    //             await waitAsync();
-
-    //             addAtoms.next({
-    //                 branch: '@testBranch',
-    //                 atoms: [a1],
-    //             });
-
-    //             await waitAsync();
-
-    //             expect(device2.messages).toEqual([
-    //                 {
-    //                     name: ADD_ATOMS,
-    //                     data: {
-    //                         branch: '@testBranch',
-    //                         atoms: [],
-    //                     },
-    //                 },
-    //                 {
-    //                     name: ADD_ATOMS,
-    //                     data: {
-    //                         branch: '@testBranch',
-    //                         atoms: [a1],
-    //                     },
-    //                 },
-    //             ]);
-
-    //             expect(device3.messages).toEqual([
-    //                 {
-    //                     name: ADD_ATOMS,
-    //                     data: {
-    //                         branch: '@testBranch',
-    //                         atoms: [],
-    //                     },
-    //                 },
-    //                 {
-    //                     name: ADD_ATOMS,
-    //                     data: {
-    //                         branch: '@testBranch',
-    //                         atoms: [a1],
-    //                     },
-    //                 },
-    //             ]);
-    //         });
-    //     });
-
-    //     it('should prevent adding atoms to a branch that has a password', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-    //         const hash1 = hashPassword('password');
-    //         const settings = branchSettings('testBranch', hash1);
-    //         await store.saveSettings(settings);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toBe(null);
-
-    //         expect(device.messages).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             // in this case, no atoms were accepted
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should allow adding atoms to a branch that has a password when authenticated', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         const authenticate = new Subject<AuthenticateBranchWritesEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-    //         device.events.set(AUTHENTICATE_BRANCH_WRITES, authenticate);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-    //         const hash1 = hashPassword('password');
-    //         const settings = branchSettings('testBranch', hash1);
-    //         await store.saveSettings(settings);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         joinBranch.next({
-    //             branch: 'testBranch',
-    //         });
-
-    //         await waitAsync();
-
-    //         authenticate.next({
-    //             branch: 'testBranch',
-    //             password: 'password',
-    //         });
-
-    //         await waitAsync();
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toEqual({
-    //             type: 'atom',
-    //             data: a3,
-    //         });
-
-    //         expect(device.messages.slice(2)).toEqual([
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             // in this case, no atoms were accepted
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-
-    //     it('should remember that the device is authenticated if the device authenticates without watching', async () => {
-    //         server.init();
-
-    //         const device = new MemoryConnection(device1Info);
-    //         const addAtoms = new Subject<AddAtomsEvent>();
-    //         const authenticate = new Subject<AuthenticateBranchWritesEvent>();
-    //         device.events.set(ADD_ATOMS, addAtoms);
-    //         device.events.set(AUTHENTICATE_BRANCH_WRITES, authenticate);
-
-    //         const joinBranch = new Subject<WatchBranchEvent>();
-    //         device.events.set(WATCH_BRANCH, joinBranch);
-
-    //         connections.connection.next(device);
-
-    //         const a1 = atom(atomId('a', 1), null, {});
-    //         const a2 = atom(atomId('a', 2), a1, {});
-    //         const a3 = atom(atomId('a', 3), a2, {});
-
-    //         const idx = index(a1, a2);
-    //         const c = commit('message', new Date(2019, 9, 4), idx, null);
-    //         const b = branch('testBranch', c);
-    //         const hash1 = hashPassword('password');
-    //         const settings = branchSettings('testBranch', hash1);
-    //         await store.saveSettings(settings);
-
-    //         await storeData(store, 'testBranch', idx.data.hash, [
-    //             a1,
-    //             a2,
-    //             idx,
-    //             c,
-    //         ]);
-    //         await updateBranch(store, b);
-
-    //         authenticate.next({
-    //             branch: 'testBranch',
-    //             password: 'password',
-    //         });
-
-    //         await waitAsync();
-
-    //         addAtoms.next({
-    //             branch: 'testBranch',
-    //             atoms: [a3],
-    //         });
-
-    //         await waitAsync();
-
-    //         const repoAtom = await store.getObject(a3.hash);
-    //         expect(repoAtom).toEqual({
-    //             type: 'atom',
-    //             data: a3,
-    //         });
-
-    //         expect(device.messages).toEqual([
-    //             {
-    //                 name: AUTHENTICATED_TO_BRANCH,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     authenticated: true,
-    //                 },
-    //             },
-    //             // Server should send a atoms received event
-    //             // back indicating which atoms it processed
-    //             // in this case, no atoms were accepted
-    //             {
-    //                 name: ATOMS_RECEIVED,
-    //                 data: {
-    //                     branch: 'testBranch',
-    //                     hashes: [a3.hash],
-    //                 },
-    //             },
-    //         ]);
-    //     });
-    // });
+    describe(ADD_ATOMS, () => {
+        it('should add the given atoms to the given branch', async () => {
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                atoms: [a3],
+            });
+
+            await atomStore.saveAtoms('testBranch', [a1, a2]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: ATOMS_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        hashes: [a3.hash],
+                    },
+                },
+
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2, a3],
+                    },
+                },
+            ]);
+
+            // server.init();
+
+            // const device = new MemoryConnection(device1Info);
+            // const addAtoms = new Subject<AddAtomsEvent>();
+            // device.events.set(ADD_ATOMS, addAtoms);
+
+            // const joinBranch = new Subject<WatchBranchEvent>();
+            // device.events.set(WATCH_BRANCH, joinBranch);
+
+            // connections.connection.next(device);
+
+            // const idx = index(a1, a2);
+            // const c = commit('message', new Date(2019, 9, 4), idx, null);
+            // const b = branch('testBranch', c);
+
+            // await storeData(store, 'testBranch', idx.data.hash, [
+            //     a1,
+            //     a2,
+            //     idx,
+            //     c,
+            // ]);
+            // await updateBranch(store, b);
+
+            // addAtoms.next({
+            //     branch: 'testBranch',
+            //     atoms: [a3],
+            // });
+
+            // await waitAsync();
+
+            // joinBranch.next({
+            //     branch: 'testBranch',
+            // });
+
+            // await waitAsync();
+
+            // expect(device.messages).toEqual([
+            //     // Server should send a atoms received event
+            //     // back indicating which atoms it processed
+            //     {
+            //         name: ATOMS_RECEIVED,
+            //         data: {
+            //             branch: 'testBranch',
+            //             hashes: [a3.hash],
+            //         },
+            //     },
+
+            //     {
+            //         name: ADD_ATOMS,
+            //         data: {
+            //             branch: 'testBranch',
+            //             atoms: [a1, a2, a3],
+            //         },
+            //     },
+            // ]);
+        });
+
+        // it('should not add atoms that violate cardinality', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(
+        //         atomId('a', 1, undefined, { group: 'abc', number: 1 }),
+        //         null,
+        //         {}
+        //     );
+        //     const a2 = atom(
+        //         atomId('a', 2, undefined, { group: 'abc', number: 1 }),
+        //         null,
+        //         {}
+        //     );
+
+        //     const idx = index();
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [idx, c]);
+        //     await updateBranch(store, b);
+
+        //     addAtoms.next({
+        //         branch: 'testBranch',
+        //         atoms: [a1, a2],
+        //     });
+
+        //     await waitAsync();
+
+        //     joinBranch.next({
+        //         branch: 'testBranch',
+        //     });
+
+        //     await waitAsync();
+
+        //     expect(device.messages).toEqual([
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a1.hash, a2.hash],
+        //             },
+        //         },
+
+        //         {
+        //             name: ADD_ATOMS,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 atoms: [a1],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        it('should notify all other devices connected to the branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+
+            await atomStore.saveAtoms('testBranch', [a1, a2]);
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                atoms: [a3],
+            });
+
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2],
+                    },
+                },
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a3],
+                    },
+                },
+            ]);
+
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2],
+                    },
+                },
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a3],
+                    },
+                },
+            ]);
+
+            // server.init();
+
+            // const device = new MemoryConnection(device1Info);
+            // const addAtoms = new Subject<AddAtomsEvent>();
+            // device.events.set(ADD_ATOMS, addAtoms);
+
+            // const device2 = new MemoryConnection(device2Info);
+            // const joinBranch2 = new Subject<WatchBranchEvent>();
+            // device2.events.set(WATCH_BRANCH, joinBranch2);
+
+            // const device3 = new MemoryConnection(device3Info);
+            // const joinBranch3 = new Subject<WatchBranchEvent>();
+            // device3.events.set(WATCH_BRANCH, joinBranch3);
+
+            // connections.connection.next(device);
+            // connections.connection.next(device2);
+            // connections.connection.next(device3);
+
+            // await waitAsync();
+
+            // const idx = index(a1, a2);
+            // const c = commit('message', new Date(2019, 9, 4), idx, null);
+            // const b = branch('testBranch', c);
+
+            // await storeData(store, 'testBranch', idx.data.hash, [
+            //     a1,
+            //     a2,
+            //     idx,
+            //     c,
+            // ]);
+            // await updateBranch(store, b);
+
+            // joinBranch2.next({
+            //     branch: 'testBranch',
+            // });
+            // joinBranch3.next({
+            //     branch: 'testBranch',
+            // });
+
+            // await waitAsync();
+
+            // addAtoms.next({
+            //     branch: 'testBranch',
+            //     atoms: [a3],
+            // });
+
+            // await waitAsync();
+
+            // expect(device2.messages).toEqual([
+            //     {
+            //         name: ADD_ATOMS,
+            //         data: {
+            //             branch: 'testBranch',
+            //             atoms: [a1, a2],
+            //         },
+            //     },
+            //     {
+            //         name: ADD_ATOMS,
+            //         data: {
+            //             branch: 'testBranch',
+            //             atoms: [a3],
+            //         },
+            //     },
+            // ]);
+
+            // expect(device3.messages).toEqual([
+            //     {
+            //         name: ADD_ATOMS,
+            //         data: {
+            //             branch: 'testBranch',
+            //             atoms: [a1, a2],
+            //         },
+            //     },
+            //     {
+            //         name: ADD_ATOMS,
+            //         data: {
+            //             branch: 'testBranch',
+            //             atoms: [a3],
+            //         },
+            //     },
+            // ]);
+        });
+
+        it('should not notify the device that sent the new atoms', async () => {
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+            await atomStore.saveAtoms('testBranch', [a1, a2]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                atoms: [a3],
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2],
+                    },
+                },
+
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: ATOMS_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        hashes: [a3.hash],
+                    },
+                },
+            ]);
+        });
+
+        it('should immediately store the added atoms', async () => {
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                atoms: [a3],
+            });
+
+            const atoms = await atomStore.loadAtoms('testBranch');
+
+            expect(atoms).toEqual([a3]);
+        });
+
+        it('should remove the given atoms from the given branch', async () => {
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+
+            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                removedAtoms: [a3.hash],
+            });
+
+            const atoms = await atomStore.loadAtoms('testBranch');
+
+            expect(atoms).toEqual([a1, a2]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: ATOMS_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        hashes: [a3.hash],
+                    },
+                },
+
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2],
+                    },
+                },
+            ]);
+        });
+
+        // it('should not remove the given atoms if they are part of a cardinality tree', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const removeAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, removeAtoms);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(
+        //         atomId('a', 1, undefined, { group: 'abc', number: 1 }),
+        //         null,
+        //         {}
+        //     );
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2, a3);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         a3,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     removeAtoms.next({
+        //         branch: 'testBranch',
+        //         removedAtoms: [a3.hash],
+        //     });
+
+        //     await waitAsync();
+
+        //     joinBranch.next({
+        //         branch: 'testBranch',
+        //     });
+
+        //     await waitAsync();
+
+        //     expect(device.messages).toEqual([
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a3.hash],
+        //             },
+        //         },
+
+        //         {
+        //             name: ADD_ATOMS,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 atoms: [a1, a2, a3],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        it('should notify all other devices connected to the branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+
+            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.addAtoms(device1Info.connectionId, {
+                branch: 'testBranch',
+                removedAtoms: [a3.hash],
+            });
+
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2, a3],
+                    },
+                },
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        removedAtoms: [a3.hash],
+                    },
+                },
+            ]);
+
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2, a3],
+                    },
+                },
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        removedAtoms: [a3.hash],
+                    },
+                },
+            ]);
+
+            // server.init();
+
+            // const device = new MemoryConnection(device1Info);
+            // const removeAtoms = new Subject<AddAtomsEvent>();
+            // device.events.set(ADD_ATOMS, removeAtoms);
+
+            // const device2 = new MemoryConnection(device2Info);
+            // const joinBranch2 = new Subject<WatchBranchEvent>();
+            // device2.events.set(WATCH_BRANCH, joinBranch2);
+
+            // const device3 = new MemoryConnection(device3Info);
+            // const joinBranch3 = new Subject<WatchBranchEvent>();
+            // device3.events.set(WATCH_BRANCH, joinBranch3);
+
+            // connections.connection.next(device);
+            // connections.connection.next(device2);
+            // connections.connection.next(device3);
+
+            // await waitAsync();
+
+            // const idx = index(a1, a2, a3);
+            // const c = commit('message', new Date(2019, 9, 4), idx, null);
+            // const b = branch('testBranch', c);
+
+            // await storeData(store, 'testBranch', idx.data.hash, [
+            //     a1,
+            //     a2,
+            //     a3,
+            //     idx,
+            //     c,
+            // ]);
+            // await updateBranch(store, b);
+
+            // joinBranch2.next({
+            //     branch: 'testBranch',
+            // });
+            // joinBranch3.next({
+            //     branch: 'testBranch',
+            // });
+
+            // await waitAsync();
+
+            // removeAtoms.next({
+            //     branch: 'testBranch',
+            //     removedAtoms: [a3.hash],
+            // });
+
+            // await waitAsync();
+
+            // expect(device2.messages).toEqual([
+
+            // ]);
+
+            // expect(device3.messages).toEqual([
+
+            // ]);
+        });
+
+        // it('should not notify the device that removed the atoms', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const removeAtoms = new Subject<AddAtomsEvent>();
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(ADD_ATOMS, removeAtoms);
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     await waitAsync();
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2, a3);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         a3,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     joinBranch.next({
+        //         branch: 'testBranch',
+        //     });
+
+        //     await waitAsync();
+
+        //     removeAtoms.next({
+        //         branch: 'testBranch',
+        //         removedAtoms: [a3.hash],
+        //     });
+
+        //     await waitAsync();
+
+        //     expect(device.messages).toEqual([
+        //         {
+        //             name: ADD_ATOMS,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 atoms: [a1, a2, a3],
+        //             },
+        //         },
+
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a3.hash],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        // it('should not send atoms that were already removed from the current commit', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const removeAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, removeAtoms);
+
+        //     const device2 = new MemoryConnection(device2Info);
+        //     const joinBranch2 = new Subject<WatchBranchEvent>();
+        //     device2.events.set(WATCH_BRANCH, joinBranch2);
+
+        //     const device3 = new MemoryConnection(device3Info);
+        //     const joinBranch3 = new Subject<WatchBranchEvent>();
+        //     device3.events.set(WATCH_BRANCH, joinBranch3);
+
+        //     connections.connection.next(device);
+        //     connections.connection.next(device2);
+        //     connections.connection.next(device3);
+
+        //     await waitAsync();
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     joinBranch2.next({
+        //         branch: 'testBranch',
+        //     });
+        //     joinBranch3.next({
+        //         branch: 'testBranch',
+        //     });
+
+        //     await waitAsync();
+
+        //     removeAtoms.next({
+        //         branch: 'testBranch',
+        //         removedAtoms: [a3.hash],
+        //     });
+
+        //     await waitAsync();
+
+        //     expect(device2.messages).toEqual([
+        //         {
+        //             name: ADD_ATOMS,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 atoms: [a1, a2],
+        //             },
+        //         },
+        //     ]);
+
+        //     expect(device3.messages).toEqual([
+        //         {
+        //             name: ADD_ATOMS,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 atoms: [a1, a2],
+        //             },
+        //         },
+        //     ]);
+
+        //     expect(device.messages).toEqual([
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a3.hash],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        // it('should add the removed atoms to the stage store', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2, a3);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         a3,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     addAtoms.next({
+        //         branch: 'testBranch',
+        //         removedAtoms: [a3.hash],
+        //     });
+
+        //     await waitAsync();
+
+        //     const stage = await stageStore.getStage('testBranch');
+
+        //     expect(stage).toEqual({
+        //         additions: [],
+        //         deletions: {
+        //             [a3.hash]: atomIdToString(a3.id),
+        //         },
+        //     });
+        // });
+
+        // it('should ignore when given an event with a null branch', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     addAtoms.next({
+        //         branch: null,
+        //         atoms: [a3],
+        //     });
+
+        //     await waitAsync();
+
+        //     const repoAtom = await store.getObject(a3.hash);
+        //     expect(repoAtom).toBe(null);
+        // });
+
+        // it('should not crash if adding atoms to a branch that does not exist', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+
+        //     connections.connection.next(device);
+
+        //     await waitAsync();
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     addAtoms.next({
+        //         branch: 'abc',
+        //         atoms: [a1, a2, a3],
+        //     });
+
+        //     await waitAsync();
+
+        //     const repoAtom = await store.getObject(a3.hash);
+        //     expect(repoAtom).toBe(null);
+        // });
+
+        // describe('temp', () => {
+        //     it('should not store the given atoms with the current branch', async () => {
+        //         server.init();
+
+        //         const device = new MemoryConnection(device1Info);
+        //         const addAtoms = new Subject<AddAtomsEvent>();
+        //         device.events.set(ADD_ATOMS, addAtoms);
+
+        //         const joinBranch = new Subject<WatchBranchEvent>();
+        //         device.events.set(WATCH_BRANCH, joinBranch);
+
+        //         connections.connection.next(device);
+
+        //         await waitAsync();
+
+        //         joinBranch.next({
+        //             branch: '@testBranch',
+        //             temporary: true,
+        //         });
+
+        //         const a1 = atom(atomId('a', 1), null, {});
+        //         const a2 = atom(atomId('a', 2), a1, {});
+        //         const a3 = atom(atomId('a', 3), a2, {});
+
+        //         const idx = index(a1, a2);
+        //         const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //         const b = branch('@testBranch', c);
+
+        //         await storeData(store, '@testBranch', idx.data.hash, [
+        //             a1,
+        //             a2,
+        //             idx,
+        //             c,
+        //         ]);
+        //         await updateBranch(store, b);
+
+        //         addAtoms.next({
+        //             branch: '@testBranch',
+        //             atoms: [a3],
+        //         });
+
+        //         await waitAsync();
+
+        //         const [repoAtom] = await store.getObjects('@testBranch', [
+        //             a3.hash,
+        //         ]);
+        //         expect(repoAtom).toBeFalsy();
+        //     });
+
+        //     it('should notify all other devices connected to the branch', async () => {
+        //         server.init();
+
+        //         const device = new MemoryConnection(device1Info);
+        //         const addAtoms = new Subject<AddAtomsEvent>();
+        //         device.events.set(ADD_ATOMS, addAtoms);
+
+        //         const device2 = new MemoryConnection(device2Info);
+        //         const joinBranch2 = new Subject<WatchBranchEvent>();
+        //         device2.events.set(WATCH_BRANCH, joinBranch2);
+
+        //         const device3 = new MemoryConnection(device3Info);
+        //         const joinBranch3 = new Subject<WatchBranchEvent>();
+        //         device3.events.set(WATCH_BRANCH, joinBranch3);
+
+        //         connections.connection.next(device);
+        //         connections.connection.next(device2);
+        //         connections.connection.next(device3);
+
+        //         await waitAsync();
+
+        //         const a1 = atom(atomId('a', 1), null, {});
+
+        //         joinBranch2.next({
+        //             branch: '@testBranch',
+        //             temporary: true,
+        //         });
+        //         joinBranch3.next({
+        //             branch: '@testBranch',
+        //             temporary: true,
+        //         });
+
+        //         await waitAsync();
+
+        //         addAtoms.next({
+        //             branch: '@testBranch',
+        //             atoms: [a1],
+        //         });
+
+        //         await waitAsync();
+
+        //         expect(device2.messages).toEqual([
+        //             {
+        //                 name: ADD_ATOMS,
+        //                 data: {
+        //                     branch: '@testBranch',
+        //                     atoms: [],
+        //                 },
+        //             },
+        //             {
+        //                 name: ADD_ATOMS,
+        //                 data: {
+        //                     branch: '@testBranch',
+        //                     atoms: [a1],
+        //                 },
+        //             },
+        //         ]);
+
+        //         expect(device3.messages).toEqual([
+        //             {
+        //                 name: ADD_ATOMS,
+        //                 data: {
+        //                     branch: '@testBranch',
+        //                     atoms: [],
+        //                 },
+        //             },
+        //             {
+        //                 name: ADD_ATOMS,
+        //                 data: {
+        //                     branch: '@testBranch',
+        //                     atoms: [a1],
+        //                 },
+        //             },
+        //         ]);
+        //     });
+        // });
+
+        // it('should prevent adding atoms to a branch that has a password', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+        //     const hash1 = hashPassword('password');
+        //     const settings = branchSettings('testBranch', hash1);
+        //     await store.saveSettings(settings);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     addAtoms.next({
+        //         branch: 'testBranch',
+        //         atoms: [a3],
+        //     });
+
+        //     await waitAsync();
+
+        //     const repoAtom = await store.getObject(a3.hash);
+        //     expect(repoAtom).toBe(null);
+
+        //     expect(device.messages).toEqual([
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         // in this case, no atoms were accepted
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        // it('should allow adding atoms to a branch that has a password when authenticated', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     const authenticate = new Subject<AuthenticateBranchWritesEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+        //     device.events.set(AUTHENTICATE_BRANCH_WRITES, authenticate);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+        //     const hash1 = hashPassword('password');
+        //     const settings = branchSettings('testBranch', hash1);
+        //     await store.saveSettings(settings);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     joinBranch.next({
+        //         branch: 'testBranch',
+        //     });
+
+        //     await waitAsync();
+
+        //     authenticate.next({
+        //         branch: 'testBranch',
+        //         password: 'password',
+        //     });
+
+        //     await waitAsync();
+
+        //     addAtoms.next({
+        //         branch: 'testBranch',
+        //         atoms: [a3],
+        //     });
+
+        //     await waitAsync();
+
+        //     const repoAtom = await store.getObject(a3.hash);
+        //     expect(repoAtom).toEqual({
+        //         type: 'atom',
+        //         data: a3,
+        //     });
+
+        //     expect(device.messages.slice(2)).toEqual([
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         // in this case, no atoms were accepted
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a3.hash],
+        //             },
+        //         },
+        //     ]);
+        // });
+
+        // it('should remember that the device is authenticated if the device authenticates without watching', async () => {
+        //     server.init();
+
+        //     const device = new MemoryConnection(device1Info);
+        //     const addAtoms = new Subject<AddAtomsEvent>();
+        //     const authenticate = new Subject<AuthenticateBranchWritesEvent>();
+        //     device.events.set(ADD_ATOMS, addAtoms);
+        //     device.events.set(AUTHENTICATE_BRANCH_WRITES, authenticate);
+
+        //     const joinBranch = new Subject<WatchBranchEvent>();
+        //     device.events.set(WATCH_BRANCH, joinBranch);
+
+        //     connections.connection.next(device);
+
+        //     const a1 = atom(atomId('a', 1), null, {});
+        //     const a2 = atom(atomId('a', 2), a1, {});
+        //     const a3 = atom(atomId('a', 3), a2, {});
+
+        //     const idx = index(a1, a2);
+        //     const c = commit('message', new Date(2019, 9, 4), idx, null);
+        //     const b = branch('testBranch', c);
+        //     const hash1 = hashPassword('password');
+        //     const settings = branchSettings('testBranch', hash1);
+        //     await store.saveSettings(settings);
+
+        //     await storeData(store, 'testBranch', idx.data.hash, [
+        //         a1,
+        //         a2,
+        //         idx,
+        //         c,
+        //     ]);
+        //     await updateBranch(store, b);
+
+        //     authenticate.next({
+        //         branch: 'testBranch',
+        //         password: 'password',
+        //     });
+
+        //     await waitAsync();
+
+        //     addAtoms.next({
+        //         branch: 'testBranch',
+        //         atoms: [a3],
+        //     });
+
+        //     await waitAsync();
+
+        //     const repoAtom = await store.getObject(a3.hash);
+        //     expect(repoAtom).toEqual({
+        //         type: 'atom',
+        //         data: a3,
+        //     });
+
+        //     expect(device.messages).toEqual([
+        //         {
+        //             name: AUTHENTICATED_TO_BRANCH,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 authenticated: true,
+        //             },
+        //         },
+        //         // Server should send a atoms received event
+        //         // back indicating which atoms it processed
+        //         // in this case, no atoms were accepted
+        //         {
+        //             name: ATOMS_RECEIVED,
+        //             data: {
+        //                 branch: 'testBranch',
+        //                 hashes: [a3.hash],
+        //             },
+        //         },
+        //     ]);
+        // });
+    });
 
     // describe(COMMIT, () => {
     //     it('should commit the current changes to the branch', async () => {
