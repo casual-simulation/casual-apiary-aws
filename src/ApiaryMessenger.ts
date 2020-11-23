@@ -3,6 +3,8 @@ import {
     ADD_ATOMS,
     AtomsReceivedEvent,
     ATOMS_RECEIVED,
+    ReceiveDeviceActionEvent,
+    RECEIVE_EVENT,
     WatchBranchEvent,
     WATCH_BRANCH,
 } from '@casual-simulation/causal-trees';
@@ -27,7 +29,8 @@ export interface ApiaryMessenger {
 export type Message =
     | WatchBranchMessage
     | AddAtomsMessage
-    | AtomsReceivedMessage;
+    | AtomsReceivedMessage
+    | ReceiveMessageMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -42,4 +45,8 @@ export interface AddAtomsMessage {
 export interface AtomsReceivedMessage {
     name: typeof ATOMS_RECEIVED;
     data: AtomsReceivedEvent;
+}
+export interface ReceiveMessageMessage {
+    name: typeof RECEIVE_EVENT;
+    data: ReceiveDeviceActionEvent;
 }

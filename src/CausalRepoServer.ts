@@ -2,7 +2,17 @@ import {
     AddAtomsEvent,
     ADD_ATOMS,
     ATOMS_RECEIVED,
+    device,
+    DeviceInfo,
     DeviceSelector,
+    DEVICE_ID_CLAIM,
+    RECEIVE_EVENT,
+    RemoteAction,
+    RemoteActionError,
+    RemoteActionResult,
+    SendRemoteActionEvent,
+    SESSION_ID_CLAIM,
+    USERNAME_CLAIM,
     WatchBranchEvent,
 } from '@casual-simulation/causal-trees';
 import { ApiaryAtomStore } from './ApiaryAtomStore';
@@ -212,6 +222,82 @@ export class CausalRepoServer {
                 hashes: [...addedAtomHashes, ...removedAtomHashes],
             },
         });
+    }
+
+    async sendEvent(connectionId: string, event: SendRemoteActionEvent) {
+        if (!event) {
+            console.warn(
+                '[CasualRepoServer] Trying to send event with a null event!'
+            );
+            return;
+        }
+
+        const branch = event.branch;
+        const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
+            branch
+        );
+
+        let finalAction: RemoteAction | RemoteActionResult | RemoteActionError;
+        if (
+            event.action.deviceId ||
+            event.action.sessionId ||
+            event.action.username ||
+            (typeof event.action.broadcast !== 'undefined' &&
+                event.action.broadcast !== null)
+        ) {
+            finalAction = event.action;
+        } else {
+            const randomDeviceIndex = Math.min(
+                connectedDevices.length - 1,
+                Math.max(Math.floor(Math.random() * connectedDevices.length), 0)
+            );
+            const randomDevice = connectedDevices[randomDeviceIndex];
+            finalAction = {
+                ...event.action,
+                sessionId: randomDevice.sessionId,
+            };
+        }
+
+        const currentConnection = await this._connectionStore.getConnection(
+            connectionId
+        );
+
+        if (!finalAction) {
+            return;
+        }
+        const targetedDevices = connectedDevices.filter((d) =>
+            isEventForDevice(finalAction, d)
+        );
+        const dEvent =
+            finalAction.type === 'remote'
+                ? device(
+                      deviceInfo(currentConnection),
+                      finalAction.event,
+                      finalAction.taskId
+                  )
+                : finalAction.type === 'remote_result'
+                ? device(
+                      deviceInfo(currentConnection),
+                      finalAction.result,
+                      finalAction.taskId
+                  )
+                : device(
+                      deviceInfo(currentConnection),
+                      finalAction.error,
+                      finalAction.taskId
+                  );
+
+        await this._messenger.sendMessage(
+            targetedDevices.map((c) => c.connectionId),
+            {
+                name: RECEIVE_EVENT,
+                data: {
+                    branch: branch,
+                    action: dEvent,
+                },
+            },
+            connectionId
+        );
     }
 
     private _setupServer() {
@@ -1194,3 +1280,31 @@ export class CausalRepoServer {
 //     }
 //     return set;
 // }
+
+export function deviceInfo(device: DeviceConnection): DeviceInfo {
+    return {
+        claims: {
+            [SESSION_ID_CLAIM]: device.sessionId,
+            [USERNAME_CLAIM]: device.username,
+            [DEVICE_ID_CLAIM]: device.username,
+        },
+        roles: [],
+    };
+}
+
+export function isEventForDevice(
+    event: DeviceSelector,
+    device: DeviceConnection
+): boolean {
+    if (event.broadcast === true) {
+        return true;
+    }
+    if (event.username === device.username) {
+        return true;
+    } else if (event.sessionId === device.sessionId) {
+        return true;
+    } else if (event.deviceId === device.username) {
+        return true;
+    }
+    return false;
+}
