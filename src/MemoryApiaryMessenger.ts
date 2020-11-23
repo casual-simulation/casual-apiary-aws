@@ -11,8 +11,15 @@ export class MemoryApiaryMessenger implements ApiaryMessenger {
         this._messages = new Map();
     }
 
-    async sendMessage(connectionIds: string[], data: any): Promise<void> {
+    async sendMessage(
+        connectionIds: string[],
+        data: any,
+        excludeConnection?: string
+    ): Promise<void> {
         for (let id of connectionIds) {
+            if (id === excludeConnection) {
+                continue;
+            }
             const list = this._getMessages(id);
             list.push(data);
         }

@@ -15,8 +15,13 @@ export interface ApiaryMessenger {
      * Sends the given data to the given connection IDs.
      * @param connectionIds The IDs of the connections.
      * @param data The data that should be sent.
+     * @param excludeConnection The connection ID that should be skipped.
      */
-    sendMessage(connectionIds: string[], data: Message): Promise<void>;
+    sendMessage(
+        connectionIds: string[],
+        data: Message,
+        excludeConnection?: string
+    ): Promise<void>;
 }
 
 export type Message =

@@ -168,7 +168,8 @@ export class CausalRepoServer {
                 {
                     name: ADD_ATOMS,
                     data: ret,
-                }
+                },
+                connectionId
             );
         }
 

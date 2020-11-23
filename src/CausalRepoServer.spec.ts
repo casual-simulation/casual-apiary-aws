@@ -332,64 +332,87 @@ describe('CausalRepoServer', () => {
                 expect(atoms).toEqual([]);
             });
 
-            // it('should be able to load a temporary branch immediately after loading a persistent branch', async () => {
-            //     server.init();
-            //     const device = new MemoryConnection(device1Info);
-            //     const joinBranch = new Subject<WatchBranchEvent>();
-            //     const addAtoms = new Subject<AddAtomsEvent>();
-            //     device.events.set(WATCH_BRANCH, joinBranch);
-            //     device.events.set(ADD_ATOMS, addAtoms);
-            //     connections.connection.next(device);
-            //     const a1 = atom(atomId('a', 1), null, {});
-            //     const a2 = atom(atomId('a', 2), a1, {});
-            //     const b1 = atom(atomId('b', 1), null, {});
-            //     const b2 = atom(atomId('b', 2), b1, {});
-            //     const idx = index(a1, a2);
-            //     const c = commit('message', new Date(2019, 9, 4), idx, null);
-            //     const b = branch('testBranch', c);
-            //     await storeData(store, 'testBranch', idx.data.hash, [
-            //         a1,
-            //         a2,
-            //         idx,
-            //         c,
-            //     ]);
-            //     await updateBranch(store, b);
-            //     joinBranch.next({
-            //         branch: 'persistentBranch',
-            //     });
-            //     joinBranch.next({
-            //         branch: 'tempBranch',
-            //         temporary: true,
-            //     });
-            //     addAtoms.next({
-            //         branch: 'tempBranch',
-            //         atoms: [b1, b2],
-            //     });
-            //     await waitAsync();
-            //     expect(device.messages).toEqual([
-            //         {
-            //             name: ADD_ATOMS,
-            //             data: {
-            //                 branch: 'persistentBranch',
-            //                 atoms: [],
-            //             },
-            //         },
-            //         {
-            //             name: ADD_ATOMS,
-            //             data: {
-            //                 branch: 'tempBranch',
-            //                 atoms: [],
-            //             },
-            //         },
-            //         {
-            //             name: ATOMS_RECEIVED,
-            //             data: {
-            //                 branch: 'tempBranch',
-            //                 hashes: [b1.hash, b2.hash],
-            //             },
-            //         },
-            //     ]);
-            // });
+            it('should not send a add_atoms event to the device that added the atoms', async () => {
+                await server.connect(device1Info);
+
+                const a1 = atom(atomId('a', 1), null, {});
+                const a2 = atom(atomId('a', 2), a1, {});
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'testBranch',
+                });
+
+                await server.addAtoms(device1Info.connectionId, {
+                    branch: 'testBranch',
+                    atoms: [a1, a2],
+                });
+
+                expect(messenger.getMessages(device1Info.connectionId)).toEqual(
+                    [
+                        {
+                            name: ADD_ATOMS,
+                            data: {
+                                branch: 'testBranch',
+                                atoms: [],
+                            },
+                        },
+                        {
+                            name: ATOMS_RECEIVED,
+                            data: {
+                                branch: 'testBranch',
+                                hashes: [a1.hash, a2.hash],
+                            },
+                        },
+                    ]
+                );
+            });
+
+            it('should be able to load a temporary branch immediately after loading a persistent branch', async () => {
+                await server.connect(device1Info);
+
+                const a1 = atom(atomId('a', 1), null, {});
+                const a2 = atom(atomId('a', 2), a1, {});
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'persistentBranch',
+                });
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'tempBranch',
+                    temporary: true,
+                });
+
+                await server.addAtoms(device1Info.connectionId, {
+                    branch: 'tempBranch',
+                    atoms: [a1, a2],
+                });
+
+                expect(messenger.getMessages(device1Info.connectionId)).toEqual(
+                    [
+                        {
+                            name: ADD_ATOMS,
+                            data: {
+                                branch: 'persistentBranch',
+                                atoms: [],
+                            },
+                        },
+                        {
+                            name: ADD_ATOMS,
+                            data: {
+                                branch: 'tempBranch',
+                                atoms: [],
+                            },
+                        },
+                        {
+                            name: ATOMS_RECEIVED,
+                            data: {
+                                branch: 'tempBranch',
+                                hashes: [a1.hash, a2.hash],
+                            },
+                        },
+                    ]
+                );
+            });
         });
     });
 
