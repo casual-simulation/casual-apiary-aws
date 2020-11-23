@@ -52,6 +52,16 @@ export interface ApiaryConnectionStore {
     getConnection(connectionId: string): Promise<DeviceConnection>;
 
     /**
+     * Gets the connection for the given connection ID and namespace.
+     * @param connectionId The ID of the connection to get.
+     * @param namespace The namespace of the connection to get.
+     */
+    getNamespaceConnection(
+        connectionId: string,
+        namespace: string
+    ): Promise<DeviceNamespaceConnection>;
+
+    /**
      * Gets the list of connections that are present for the given connection ID.
      * @param connectionId The ID of the connection.
      */

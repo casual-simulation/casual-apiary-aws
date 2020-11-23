@@ -129,6 +129,36 @@ export class CausalRepoServer {
         });
     }
 
+    async unwatchBranch(connectionId: string, branch: string) {
+        if (!branch) {
+            console.warn(
+                '[CasualRepoServer] Trying to unwatch branch with a null event!'
+            );
+            return;
+        }
+
+        console.log(`[CausalRepoServer] [${branch}] [${connectionId}] Unwatch`);
+
+        const connection = await this._connectionStore.getNamespaceConnection(
+            connectionId,
+            branch
+        );
+        if (connection) {
+            await this._connectionStore.deleteNamespaceConnection(
+                connectionId,
+                branch
+            );
+            if (connection.temporary) {
+                const count = await this._connectionStore.countConnectionsByNamespace(
+                    branch
+                );
+                if (count <= 0) {
+                    await this._atomStore.clearNamespace(connection.namespace);
+                }
+            }
+        }
+    }
+
     async addAtoms(connectionId: string, event: AddAtomsEvent) {
         if (!event) {
             console.warn(
