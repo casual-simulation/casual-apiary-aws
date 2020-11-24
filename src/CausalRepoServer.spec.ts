@@ -1,4 +1,5 @@
 import {
+    branchNamespace,
     CausalRepoServer,
     deviceInfo,
     isEventForDevice,
@@ -109,7 +110,7 @@ describe('CausalRepoServer', () => {
 
             const a1 = atom(atomId('a', 1), null, {});
             const a2 = atom(atomId('a', 2), a1, {});
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -150,7 +151,7 @@ describe('CausalRepoServer', () => {
 
             const a1 = atom(atomId('a', 1), null, {});
             const a2 = atom(atomId('a', 2), a1, {});
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             const watchBranch1 = server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -186,7 +187,7 @@ describe('CausalRepoServer', () => {
 
             const a1 = atom(atomId('a', 1), null, {});
             const a2 = atom(atomId('a', 2), a1, {});
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -224,7 +225,10 @@ describe('CausalRepoServer', () => {
 
                 const a1 = atom(atomId('a', 1), null, {});
                 const a2 = atom(atomId('a', 2), a1, {});
-                await atomStore.saveAtoms('testBranch', [a1, a2]);
+                await atomStore.saveAtoms(branchNamespace('testBranch'), [
+                    a1,
+                    a2,
+                ]);
 
                 await server.watchBranch(device1Info.connectionId, {
                     branch: 'testBranch',
@@ -333,22 +337,30 @@ describe('CausalRepoServer', () => {
                     temporary: true,
                 });
 
-                let atoms = await atomStore.loadAtoms('testBranch');
+                let atoms = await atomStore.loadAtoms(
+                    branchNamespace('testBranch')
+                );
                 expect(atoms).toEqual([a1, a2]);
 
                 await server.disconnect(device1Info.connectionId);
 
-                atoms = await atomStore.loadAtoms('testBranch');
+                atoms = await atomStore.loadAtoms(
+                    branchNamespace('testBranch')
+                );
                 expect(atoms).toEqual([a1, a2]);
 
                 await server.disconnect(device2Info.connectionId);
 
-                atoms = await atomStore.loadAtoms('testBranch');
+                atoms = await atomStore.loadAtoms(
+                    branchNamespace('testBranch')
+                );
                 expect(atoms).toEqual([a1, a2]);
 
                 await server.disconnect(device3Info.connectionId);
 
-                atoms = await atomStore.loadAtoms('testBranch');
+                atoms = await atomStore.loadAtoms(
+                    branchNamespace('testBranch')
+                );
                 expect(atoms).toEqual([]);
             });
 
@@ -632,16 +644,15 @@ describe('CausalRepoServer', () => {
 
             await server.unwatchBranch(device1Info.connectionId, 'testBranch');
 
-            expect(await atomStore.loadAtoms('testBranch')).toEqual([
-                a1,
-                a2,
-                a3,
-                a4,
-            ]);
+            expect(
+                await atomStore.loadAtoms(branchNamespace('testBranch'))
+            ).toEqual([a1, a2, a3, a4]);
 
             await server.unwatchBranch(device2Info.connectionId, 'testBranch');
 
-            expect(await atomStore.loadAtoms('testBranch')).toEqual([]);
+            expect(
+                await atomStore.loadAtoms(branchNamespace('testBranch'))
+            ).toEqual([]);
         });
     });
 
@@ -840,7 +851,7 @@ describe('CausalRepoServer', () => {
                 atoms: [a3],
             });
 
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -996,7 +1007,7 @@ describe('CausalRepoServer', () => {
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
 
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             await server.watchBranch(device2Info.connectionId, {
                 branch: 'testBranch',
@@ -1134,7 +1145,7 @@ describe('CausalRepoServer', () => {
             const a1 = atom(atomId('a', 1), null, {});
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
-            await atomStore.saveAtoms('testBranch', [a1, a2]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -1178,7 +1189,9 @@ describe('CausalRepoServer', () => {
                 atoms: [a3],
             });
 
-            const atoms = await atomStore.loadAtoms('testBranch');
+            const atoms = await atomStore.loadAtoms(
+                branchNamespace('testBranch')
+            );
 
             expect(atoms).toEqual([a3]);
         });
@@ -1190,14 +1203,20 @@ describe('CausalRepoServer', () => {
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
 
-            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [
+                a1,
+                a2,
+                a3,
+            ]);
 
             await server.addAtoms(device1Info.connectionId, {
                 branch: 'testBranch',
                 removedAtoms: [a3.hash],
             });
 
-            const atoms = await atomStore.loadAtoms('testBranch');
+            const atoms = await atomStore.loadAtoms(
+                branchNamespace('testBranch')
+            );
 
             expect(atoms).toEqual([a1, a2]);
 
@@ -1302,7 +1321,11 @@ describe('CausalRepoServer', () => {
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
 
-            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [
+                a1,
+                a2,
+                a3,
+            ]);
 
             await server.watchBranch(device2Info.connectionId, {
                 branch: 'testBranch',
@@ -1359,7 +1382,11 @@ describe('CausalRepoServer', () => {
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
 
-            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [
+                a1,
+                a2,
+                a3,
+            ]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -1398,7 +1425,11 @@ describe('CausalRepoServer', () => {
             const a2 = atom(atomId('a', 2), a1, {});
             const a3 = atom(atomId('a', 3), a2, {});
 
-            await atomStore.saveAtoms('testBranch', [a1, a2, a3]);
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [
+                a1,
+                a2,
+                a3,
+            ]);
 
             await server.watchBranch(device1Info.connectionId, {
                 branch: 'testBranch',
@@ -1455,7 +1486,9 @@ describe('CausalRepoServer', () => {
                 atoms: [a3],
             });
 
-            expect(await atomStore.loadAtoms('abc')).toEqual([a3]);
+            expect(await atomStore.loadAtoms(branchNamespace('abc'))).toEqual([
+                a3,
+            ]);
         });
 
         // describe('temp', () => {

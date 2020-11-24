@@ -119,23 +119,25 @@ export class CausalRepoServer {
             return;
         }
 
-        const branch = event.branch;
-        console.log(`[CausalRepoServer] [${branch}] [${connectionId}] Watch`);
+        const namespace = branchNamespace(event.branch);
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Watch`
+        );
 
         const connection = await this._connectionStore.getConnection(
             connectionId
         );
         await this._connectionStore.saveNamespaceConnection({
             ...connection,
-            namespace: branch,
+            namespace: namespace,
             temporary: event.temporary || false,
         });
 
-        const atoms = await this._atomStore.loadAtoms(branch);
+        const atoms = await this._atomStore.loadAtoms(namespace);
         this._messenger.sendMessage([connection.connectionId], {
             name: ADD_ATOMS,
             data: {
-                branch: branch,
+                branch: event.branch,
                 atoms: atoms,
             },
         });
@@ -149,20 +151,23 @@ export class CausalRepoServer {
             return;
         }
 
-        console.log(`[CausalRepoServer] [${branch}] [${connectionId}] Unwatch`);
+        const namespace = branchNamespace(branch);
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Unwatch`
+        );
 
         const connection = await this._connectionStore.getNamespaceConnection(
             connectionId,
-            branch
+            namespace
         );
         if (connection) {
             await this._connectionStore.deleteNamespaceConnection(
                 connectionId,
-                branch
+                namespace
             );
             if (connection.temporary) {
                 const count = await this._connectionStore.countConnectionsByNamespace(
-                    branch
+                    namespace
                 );
                 if (count <= 0) {
                     await this._atomStore.clearNamespace(connection.namespace);
@@ -179,23 +184,23 @@ export class CausalRepoServer {
             return;
         }
 
-        const branch = event.branch;
+        const namespace = branchNamespace(event.branch);
         if (event.atoms) {
-            await this._atomStore.saveAtoms(branch, event.atoms);
+            await this._atomStore.saveAtoms(namespace, event.atoms);
         }
         if (event.removedAtoms) {
-            await this._atomStore.deleteAtoms(branch, event.removedAtoms);
+            await this._atomStore.deleteAtoms(namespace, event.removedAtoms);
         }
 
         const hasAdded = event.atoms && event.atoms.length > 0;
         const hasRemoved = event.removedAtoms && event.removedAtoms.length > 0;
         if (hasAdded || hasRemoved) {
             const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
-                branch
+                namespace
             );
 
             let ret: AddAtomsEvent = {
-                branch,
+                branch: event.branch,
             };
 
             if (hasAdded) {
@@ -220,7 +225,7 @@ export class CausalRepoServer {
         await this._messenger.sendMessage([connectionId], {
             name: ATOMS_RECEIVED,
             data: {
-                branch: branch,
+                branch: event.branch,
                 hashes: [...addedAtomHashes, ...removedAtomHashes],
             },
         });
@@ -234,9 +239,9 @@ export class CausalRepoServer {
             return;
         }
 
-        const branch = event.branch;
+        const namespace = branchNamespace(event.branch);
         const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
-            branch
+            namespace
         );
 
         let finalAction: RemoteAction | RemoteActionResult | RemoteActionError;
@@ -296,7 +301,7 @@ export class CausalRepoServer {
             {
                 name: RECEIVE_EVENT,
                 data: {
-                    branch: branch,
+                    branch: event.branch,
                     action: dEvent,
                 },
             }
@@ -1295,6 +1300,11 @@ export function deviceInfo(device: DeviceConnection): DeviceInfo {
     };
 }
 
+/**
+ * Determines if the given event targets the given device connection.
+ * @param event The event to check.
+ * @param device The device to check.
+ */
 export function isEventForDevice(
     event: DeviceSelector,
     device: DeviceConnection
@@ -1310,4 +1320,12 @@ export function isEventForDevice(
         return true;
     }
     return false;
+}
+
+/**
+ * Gets the namespace that the given branch should use.
+ * @param branch The branch.
+ */
+export function branchNamespace(branch: string) {
+    return `/branch/${branch}`;
 }
