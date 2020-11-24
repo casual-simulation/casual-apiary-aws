@@ -3,7 +3,9 @@ import {
     ADD_ATOMS,
     ATOMS_RECEIVED,
     device,
+    deviceError,
     DeviceInfo,
+    deviceResult,
     DeviceSelector,
     DEVICE_ID_CLAIM,
     RECEIVE_EVENT,
@@ -247,6 +249,8 @@ export class CausalRepoServer {
         ) {
             finalAction = event.action;
         } else {
+            // TODO: Replace with system that selects target devices with better uniformity
+            // than Math.random().
             const randomDeviceIndex = Math.min(
                 connectedDevices.length - 1,
                 Math.max(Math.floor(Math.random() * connectedDevices.length), 0)
@@ -276,12 +280,12 @@ export class CausalRepoServer {
                       finalAction.taskId
                   )
                 : finalAction.type === 'remote_result'
-                ? device(
+                ? deviceResult(
                       deviceInfo(currentConnection),
                       finalAction.result,
                       finalAction.taskId
                   )
-                : device(
+                : deviceError(
                       deviceInfo(currentConnection),
                       finalAction.error,
                       finalAction.taskId
@@ -295,8 +299,7 @@ export class CausalRepoServer {
                     branch: branch,
                     action: dEvent,
                 },
-            },
-            connectionId
+            }
         );
     }
 

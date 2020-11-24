@@ -20,9 +20,13 @@ import { DeviceConnection } from './ApiaryConnectionStore';
 import { MemoryApiaryMessenger } from './MemoryApiaryMessenger';
 import {
     device,
+    deviceError,
     DeviceInfo,
+    deviceResult,
     DEVICE_ID_CLAIM,
     remote,
+    remoteError,
+    remoteResult,
     SESSION_ID_CLAIM,
     USERNAME_CLAIM,
 } from '@casual-simulation/causal-trees';
@@ -1836,77 +1840,6 @@ describe('CausalRepoServer', () => {
                     },
                 },
             ]);
-
-            // server.init();
-
-            // const device = new MemoryConnection(device1Info);
-            // const sendEvent = new Subject<SendRemoteActionEvent>();
-            // device.events.set(SEND_EVENT, sendEvent);
-
-            // const device2 = new MemoryConnection(device2Info);
-            // const joinBranch2 = new Subject<WatchBranchEvent>();
-            // device2.events.set(WATCH_BRANCH, joinBranch2);
-
-            // const device3 = new MemoryConnection(device3Info);
-            // const joinBranch3 = new Subject<WatchBranchEvent>();
-            // device3.events.set(WATCH_BRANCH, joinBranch3);
-
-            // connections.connection.next(device);
-            // connections.connection.next(device2);
-            // connections.connection.next(device3);
-
-            // await waitAsync();
-
-            // joinBranch2.next({
-            //     branch: 'testBranch',
-            // });
-            // joinBranch3.next({
-            //     branch: 'testBranch',
-            // });
-
-            // await waitAsync();
-
-            // sendEvent.next({
-            //     branch: 'testBranch',
-            //     action: remote(
-            //         {
-            //             type: 'abc',
-            //         },
-            //         {
-            //             sessionId: device3Info.claims[SESSION_ID_CLAIM],
-            //         }
-            //     ),
-            // });
-
-            // await waitAsync();
-
-            // expect(device2.messages).toEqual([
-            //     {
-            //         name: ADD_ATOMS,
-            //         data: {
-            //             branch: 'testBranch',
-            //             atoms: [],
-            //         },
-            //     },
-            // ]);
-            // expect(device3.messages).toEqual([
-            //     {
-            //         name: ADD_ATOMS,
-            //         data: {
-            //             branch: 'testBranch',
-            //             atoms: [],
-            //         },
-            //     },
-            //     {
-            //         name: RECEIVE_EVENT,
-            //         data: {
-            //             branch: 'testBranch',
-            //             action: deviceEvent(device1Info, {
-            //                 type: 'abc',
-            //             }),
-            //         },
-            //     },
-            // ]);
         });
 
         it('should send remote events to a random device if none is specified', async () => {
@@ -1959,380 +1892,242 @@ describe('CausalRepoServer', () => {
                     },
                 },
             ]);
-
-            // server.defaultDeviceSelector = {
-            //     sessionId: device2Info.claims[SESSION_ID_CLAIM],
-            // };
-            // server.init();
-
-            // const device = new MemoryConnection(device1Info);
-            // const sendEvent = new Subject<SendRemoteActionEvent>();
-            // device.events.set(SEND_EVENT, sendEvent);
-
-            // const device2 = new MemoryConnection(device2Info);
-            // const joinBranch2 = new Subject<WatchBranchEvent>();
-            // device2.events.set(WATCH_BRANCH, joinBranch2);
-
-            // const device3 = new MemoryConnection(device3Info);
-            // const joinBranch3 = new Subject<WatchBranchEvent>();
-            // device3.events.set(WATCH_BRANCH, joinBranch3);
-
-            // connections.connection.next(device);
-            // connections.connection.next(device2);
-            // connections.connection.next(device3);
-
-            // await waitAsync();
-
-            // joinBranch2.next({
-            //     branch: 'testBranch',
-            // });
-            // joinBranch3.next({
-            //     branch: 'testBranch',
-            // });
-
-            // await waitAsync();
-
-            // sendEvent.next({
-            //     branch: 'testBranch',
-            //     action: remote({
-            //         type: 'abc',
-            //     }),
-            // });
-
-            // await waitAsync();
-
-            // expect(device2.messages).toEqual([
-            //     {
-            //         name: ADD_ATOMS,
-            //         data: {
-            //             branch: 'testBranch',
-            //             atoms: [],
-            //         },
-            //     },
-            //     {
-            //         name: RECEIVE_EVENT,
-            //         data: {
-            //             branch: 'testBranch',
-            //             action: deviceEvent(device1Info, {
-            //                 type: 'abc',
-            //             }),
-            //         },
-            //     },
-            // ]);
-            // expect(device3.messages).toEqual([
-            //     {
-            //         name: ADD_ATOMS,
-            //         data: {
-            //             branch: 'testBranch',
-            //             atoms: [],
-            //         },
-            //     },
-            // ]);
         });
 
-        // it('should broadcast to all devices if broadcast is true', async () => {
-        //     server.defaultDeviceSelector = {
-        //         sessionId: device2Info.claims[SESSION_ID_CLAIM],
-        //     };
-        //     server.init();
+        it('should broadcast to all devices if broadcast is true', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
 
-        //     const device = new MemoryConnection(device1Info);
-        //     const sendEvent = new Subject<SendRemoteActionEvent>();
-        //     device.events.set(SEND_EVENT, sendEvent);
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     const device2 = new MemoryConnection(device2Info);
-        //     const joinBranch2 = new Subject<WatchBranchEvent>();
-        //     device2.events.set(WATCH_BRANCH, joinBranch2);
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     const device3 = new MemoryConnection(device3Info);
-        //     const joinBranch3 = new Subject<WatchBranchEvent>();
-        //     device3.events.set(WATCH_BRANCH, joinBranch3);
+            await server.sendEvent(device1Info.connectionId, {
+                branch: 'testBranch',
+                action: remote(
+                    {
+                        type: 'abc',
+                    },
+                    {
+                        broadcast: true,
+                    }
+                ),
+            });
 
-        //     connections.connection.next(device);
-        //     connections.connection.next(device2);
-        //     connections.connection.next(device3);
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: device(deviceInfo(device1Info), {
+                            type: 'abc',
+                        }),
+                    },
+                },
+            ]);
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([]);
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: device(deviceInfo(device1Info), {
+                            type: 'abc',
+                        }),
+                    },
+                },
+            ]);
+        });
 
-        //     await waitAsync();
+        it('should relay the task ID from the remote action to the device action', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
 
-        //     joinBranch2.next({
-        //         branch: 'testBranch',
-        //     });
-        //     joinBranch3.next({
-        //         branch: 'testBranch',
-        //     });
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     await waitAsync();
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     sendEvent.next({
-        //         branch: 'testBranch',
-        //         action: remote(
-        //             {
-        //                 type: 'abc',
-        //             },
-        //             {
-        //                 broadcast: true,
-        //             }
-        //         ),
-        //     });
+            await server.sendEvent(device1Info.connectionId, {
+                branch: 'testBranch',
+                action: remote(
+                    {
+                        type: 'abc',
+                    },
+                    {
+                        sessionId: device3Info.sessionId,
+                    },
+                    undefined,
+                    'task1'
+                ),
+            });
 
-        //     await waitAsync();
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+            ]);
 
-        //     expect(device2.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //         {
-        //             name: RECEIVE_EVENT,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 action: deviceEvent(device1Info, {
-        //                     type: 'abc',
-        //                 }),
-        //             },
-        //         },
-        //     ]);
-        //     expect(device3.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //         {
-        //             name: RECEIVE_EVENT,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 action: deviceEvent(device1Info, {
-        //                     type: 'abc',
-        //                 }),
-        //             },
-        //         },
-        //     ]);
-        // });
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: device(
+                            deviceInfo(device1Info),
+                            {
+                                type: 'abc',
+                            },
+                            'task1'
+                        ),
+                    },
+                },
+            ]);
+        });
 
-        // it('should relay the task ID from the remote action to the device action', async () => {
-        //     server.init();
+        it('should convert a remote action result to a device action result', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
 
-        //     const device = new MemoryConnection(device1Info);
-        //     const sendEvent = new Subject<SendRemoteActionEvent>();
-        //     device.events.set(SEND_EVENT, sendEvent);
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     const device2 = new MemoryConnection(device2Info);
-        //     const joinBranch2 = new Subject<WatchBranchEvent>();
-        //     device2.events.set(WATCH_BRANCH, joinBranch2);
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     const device3 = new MemoryConnection(device3Info);
-        //     const joinBranch3 = new Subject<WatchBranchEvent>();
-        //     device3.events.set(WATCH_BRANCH, joinBranch3);
+            await server.sendEvent(device1Info.connectionId, {
+                branch: 'testBranch',
+                action: remoteResult(
+                    'data',
+                    {
+                        sessionId: device3Info.sessionId,
+                    },
+                    'task1'
+                ),
+            });
 
-        //     connections.connection.next(device);
-        //     connections.connection.next(device2);
-        //     connections.connection.next(device3);
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+            ]);
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: deviceResult(
+                            deviceInfo(device1Info),
+                            'data',
+                            'task1'
+                        ),
+                    },
+                },
+            ]);
+        });
 
-        //     await waitAsync();
+        it('should convert a remote action error to a device action error', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
 
-        //     joinBranch2.next({
-        //         branch: 'testBranch',
-        //     });
-        //     joinBranch3.next({
-        //         branch: 'testBranch',
-        //     });
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     await waitAsync();
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-        //     sendEvent.next({
-        //         branch: 'testBranch',
-        //         action: remote(
-        //             {
-        //                 type: 'abc',
-        //             },
-        //             {
-        //                 sessionId: device3Info.claims[SESSION_ID_CLAIM],
-        //             },
-        //             undefined,
-        //             'task1'
-        //         ),
-        //     });
+            await server.sendEvent(device1Info.connectionId, {
+                branch: 'testBranch',
+                action: remoteError(
+                    'data',
+                    {
+                        sessionId: device3Info.sessionId,
+                    },
+                    'task1'
+                ),
+            });
 
-        //     await waitAsync();
-
-        //     expect(device2.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //     ]);
-        //     expect(device3.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //         {
-        //             name: RECEIVE_EVENT,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 action: deviceEvent(
-        //                     device1Info,
-        //                     {
-        //                         type: 'abc',
-        //                     },
-        //                     'task1'
-        //                 ),
-        //             },
-        //         },
-        //     ]);
-        // });
-
-        // it('should convert a remote action result to a device action result', async () => {
-        //     server.init();
-
-        //     const device = new MemoryConnection(device1Info);
-        //     const sendEvent = new Subject<SendRemoteActionEvent>();
-        //     device.events.set(SEND_EVENT, sendEvent);
-
-        //     const device2 = new MemoryConnection(device2Info);
-        //     const joinBranch2 = new Subject<WatchBranchEvent>();
-        //     device2.events.set(WATCH_BRANCH, joinBranch2);
-
-        //     const device3 = new MemoryConnection(device3Info);
-        //     const joinBranch3 = new Subject<WatchBranchEvent>();
-        //     device3.events.set(WATCH_BRANCH, joinBranch3);
-
-        //     connections.connection.next(device);
-        //     connections.connection.next(device2);
-        //     connections.connection.next(device3);
-
-        //     await waitAsync();
-
-        //     joinBranch2.next({
-        //         branch: 'testBranch',
-        //     });
-        //     joinBranch3.next({
-        //         branch: 'testBranch',
-        //     });
-
-        //     await waitAsync();
-
-        //     sendEvent.next({
-        //         branch: 'testBranch',
-        //         action: remoteResult(
-        //             'data',
-        //             {
-        //                 sessionId: device3Info.claims[SESSION_ID_CLAIM],
-        //             },
-        //             'task1'
-        //         ),
-        //     });
-
-        //     await waitAsync();
-
-        //     expect(device2.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //     ]);
-        //     expect(device3.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //         {
-        //             name: RECEIVE_EVENT,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 action: deviceResult(device1Info, 'data', 'task1'),
-        //             },
-        //         },
-        //     ]);
-        // });
-
-        // it('should convert a remote action error to a device action error', async () => {
-        //     server.init();
-
-        //     const device = new MemoryConnection(device1Info);
-        //     const sendEvent = new Subject<SendRemoteActionEvent>();
-        //     device.events.set(SEND_EVENT, sendEvent);
-
-        //     const device2 = new MemoryConnection(device2Info);
-        //     const joinBranch2 = new Subject<WatchBranchEvent>();
-        //     device2.events.set(WATCH_BRANCH, joinBranch2);
-
-        //     const device3 = new MemoryConnection(device3Info);
-        //     const joinBranch3 = new Subject<WatchBranchEvent>();
-        //     device3.events.set(WATCH_BRANCH, joinBranch3);
-
-        //     connections.connection.next(device);
-        //     connections.connection.next(device2);
-        //     connections.connection.next(device3);
-
-        //     await waitAsync();
-
-        //     joinBranch2.next({
-        //         branch: 'testBranch',
-        //     });
-        //     joinBranch3.next({
-        //         branch: 'testBranch',
-        //     });
-
-        //     await waitAsync();
-
-        //     sendEvent.next({
-        //         branch: 'testBranch',
-        //         action: remoteError(
-        //             'data',
-        //             {
-        //                 sessionId: device3Info.claims[SESSION_ID_CLAIM],
-        //             },
-        //             'task1'
-        //         ),
-        //     });
-
-        //     await waitAsync();
-
-        //     expect(device2.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //     ]);
-        //     expect(device3.messages).toEqual([
-        //         {
-        //             name: ADD_ATOMS,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 atoms: [],
-        //             },
-        //         },
-        //         {
-        //             name: RECEIVE_EVENT,
-        //             data: {
-        //                 branch: 'testBranch',
-        //                 action: deviceError(device1Info, 'data', 'task1'),
-        //             },
-        //         },
-        //     ]);
-        // });
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+            ]);
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: deviceError(
+                            deviceInfo(device1Info),
+                            'data',
+                            'task1'
+                        ),
+                    },
+                },
+            ]);
+        });
     });
 
     // describe(WATCH_DEVICES, () => {
@@ -3529,5 +3324,24 @@ describe('CausalRepoServer', () => {
                 ).toBe(expected);
             }
         );
+
+        it('should return true if broadcast is true', () => {
+            let device: DeviceConnection = {
+                connectionId: 'connection',
+                username: 'username',
+                sessionId: 'sessionId',
+                token: 'abc',
+            };
+            expect(
+                isEventForDevice(
+                    <any>{
+                        type: 'remote',
+                        event: null,
+                        broadcast: true,
+                    },
+                    device
+                )
+            ).toBe(true);
+        });
     });
 });
