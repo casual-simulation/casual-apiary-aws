@@ -7,6 +7,8 @@ import {
     DeviceInfo,
     deviceResult,
     DeviceSelector,
+    DEVICE_CONNECTED_TO_BRANCH,
+    DEVICE_DISCONNECTED_FROM_BRANCH,
     DEVICE_ID_CLAIM,
     RECEIVE_EVENT,
     RemoteAction,
@@ -96,15 +98,36 @@ export class CausalRepoServer {
         await this._connectionStore.clearConnection(connectionId);
 
         for (let connection of loadedConnections) {
-            if (connection.temporary) {
-                const count = await this._connectionStore.countConnectionsByNamespace(
-                    connection.namespace
+            if (isBranchConnection(connection.namespace)) {
+                if (connection.temporary) {
+                    const count = await this._connectionStore.countConnectionsByNamespace(
+                        connection.namespace
+                    );
+
+                    if (count <= 0) {
+                        // unload namespace
+                        await this._atomStore.clearNamespace(
+                            connection.namespace
+                        );
+                    }
+                }
+
+                const branch = branchFromNamespace(connection.namespace);
+                const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
+                    watchBranchNamespace(branch)
                 );
 
-                if (count <= 0) {
-                    // unload namespace
-                    await this._atomStore.clearNamespace(connection.namespace);
-                }
+                await this._messenger.sendMessage(
+                    watchingDevices.map((d) => d.connectionId),
+                    {
+                        name: DEVICE_DISCONNECTED_FROM_BRANCH,
+                        data: {
+                            broadcast: false,
+                            branch: branch,
+                            device: deviceInfo(connection),
+                        },
+                    }
+                );
             }
         }
     }
@@ -134,13 +157,34 @@ export class CausalRepoServer {
         });
 
         const atoms = await this._atomStore.loadAtoms(namespace);
-        this._messenger.sendMessage([connection.connectionId], {
-            name: ADD_ATOMS,
-            data: {
-                branch: event.branch,
-                atoms: atoms,
-            },
-        });
+        const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
+            watchBranchNamespace(event.branch)
+        );
+
+        console.log(
+            `[CausalRepoServer] [${event.branch}] [${connectionId}] Connected.`
+        );
+        const promises = [
+            this._messenger.sendMessage(
+                watchingDevices.map((d) => d.connectionId),
+                {
+                    name: DEVICE_CONNECTED_TO_BRANCH,
+                    data: {
+                        broadcast: false,
+                        branch: event,
+                        device: deviceInfo(connection),
+                    },
+                }
+            ),
+            this._messenger.sendMessage([connection.connectionId], {
+                name: ADD_ATOMS,
+                data: {
+                    branch: event.branch,
+                    atoms: atoms,
+                },
+            }),
+        ];
+        await Promise.all(promises);
     }
 
     async unwatchBranch(connectionId: string, branch: string) {
@@ -173,6 +217,22 @@ export class CausalRepoServer {
                     await this._atomStore.clearNamespace(connection.namespace);
                 }
             }
+
+            const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
+                watchBranchNamespace(branch)
+            );
+
+            await this._messenger.sendMessage(
+                watchingDevices.map((d) => d.connectionId),
+                {
+                    name: DEVICE_DISCONNECTED_FROM_BRANCH,
+                    data: {
+                        broadcast: false,
+                        branch: branch,
+                        device: deviceInfo(connection),
+                    },
+                }
+            );
         }
     }
 
@@ -306,6 +366,41 @@ export class CausalRepoServer {
                 },
             }
         );
+    }
+
+    async watchBranchDevices(connectionId: string, branch: string) {
+        const namespace = watchBranchNamespace(branch);
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Watch devices for branch`
+        );
+
+        const connection = await this._connectionStore.getConnection(
+            connectionId
+        );
+        await this._connectionStore.saveNamespaceConnection({
+            ...connection,
+            namespace: namespace,
+            temporary: true,
+        });
+
+        const currentDevices = await this._connectionStore.getConnectionsByNamespace(
+            branchNamespace(branch)
+        );
+        const promises = currentDevices.map((device) =>
+            this._messenger.sendMessage([connectionId], {
+                name: DEVICE_CONNECTED_TO_BRANCH,
+                data: {
+                    broadcast: false,
+                    branch: {
+                        branch: branch,
+                        temporary: device.temporary,
+                    },
+                    device: deviceInfo(device),
+                },
+            })
+        );
+
+        await Promise.all(promises);
     }
 
     private _setupServer() {
@@ -1328,4 +1423,20 @@ export function isEventForDevice(
  */
 export function branchNamespace(branch: string) {
     return `/branch/${branch}`;
+}
+
+/**
+ * Gets the namespace that should be used for watching devices connected to branches.
+ * @param branch The branch to watch.
+ */
+export function watchBranchNamespace(branch: string) {
+    return `/watched_branch/${branch}`;
+}
+
+export function branchFromNamespace(namespace: string) {
+    return namespace.slice('/branch/'.length);
+}
+
+export function isBranchConnection(namespace: string) {
+    return namespace.startsWith('/branch/');
 }

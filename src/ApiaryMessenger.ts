@@ -3,6 +3,10 @@ import {
     ADD_ATOMS,
     AtomsReceivedEvent,
     ATOMS_RECEIVED,
+    ConnectedToBranchEvent,
+    DEVICE_CONNECTED_TO_BRANCH,
+    DEVICE_DISCONNECTED_FROM_BRANCH,
+    DisconnectedFromBranchEvent,
     ReceiveDeviceActionEvent,
     RECEIVE_EVENT,
     WatchBranchEvent,
@@ -30,7 +34,9 @@ export type Message =
     | WatchBranchMessage
     | AddAtomsMessage
     | AtomsReceivedMessage
-    | ReceiveMessageMessage;
+    | ReceiveMessageMessage
+    | DeviceConnectedToBranchMessage
+    | DeviceDisconnectedFromBranchMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -49,4 +55,14 @@ export interface AtomsReceivedMessage {
 export interface ReceiveMessageMessage {
     name: typeof RECEIVE_EVENT;
     data: ReceiveDeviceActionEvent;
+}
+
+export interface DeviceConnectedToBranchMessage {
+    name: typeof DEVICE_CONNECTED_TO_BRANCH;
+    data: ConnectedToBranchEvent;
+}
+
+export interface DeviceDisconnectedFromBranchMessage {
+    name: typeof DEVICE_DISCONNECTED_FROM_BRANCH;
+    data: DisconnectedFromBranchEvent;
 }
