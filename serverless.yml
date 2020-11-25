@@ -99,6 +99,21 @@ resources:
                     ReadCapacityUnits: 1
                     WriteCapacityUnits: 1
 
+        # A DynamoDB table that stores connections
+        ConnectionsTable:
+            Type: AWS::DynamoDB::Table
+            Properties:
+                TableName: ConnectionsTable
+                AttributeDefinitions:
+                    - AttributeName: connectionId
+                      AttributeType: S
+                KeySchema:
+                    - AttributeName: connectionId
+                      KeyType: HASH
+                ProvisionedThroughput:
+                    ReadCapacityUnits: 1
+                    WriteCapacityUnits: 1
+
         # A DynamoDB table that groups connections by namespace
         NamespaceConnectionsTable:
             Type: AWS::DynamoDB::Table
