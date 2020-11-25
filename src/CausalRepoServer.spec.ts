@@ -15,6 +15,7 @@ import {
     RECEIVE_EVENT,
     SEND_EVENT,
     UNWATCH_BRANCH,
+    UNWATCH_BRANCH_DEVICES,
     WATCH_BRANCH,
     WATCH_BRANCH_DEVICES,
 } from '@casual-simulation/causal-trees/core2';
@@ -2468,38 +2469,47 @@ describe('CausalRepoServer', () => {
         });
     });
 
-    // describe(UNWATCH_BRANCH_DEVICES, () => {
-    //     it('should not send an event when stopped watching', async () => {
-    //         server.init();
+    describe(UNWATCH_BRANCH_DEVICES, () => {
+        it('should not send an event when stopped watching', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
 
-    //         const device = new MemoryConnection(device1Info);
-    //         const watchDevices = new Subject<string>();
-    //         device.events.set(WATCH_BRANCH_DEVICES, watchDevices);
-    //         const unwatchDevices = new Subject<string>();
-    //         device.events.set(UNWATCH_BRANCH_DEVICES, unwatchDevices);
+            await server.watchBranchDevices(
+                device1Info.connectionId,
+                'testBranch'
+            );
+            await server.unwatchBranchDevices(
+                device1Info.connectionId,
+                'testBranch'
+            );
 
-    //         const device2 = new MemoryConnection(device2Info);
-    //         const joinBranch2 = new Subject<WatchBranchEvent>();
-    //         device2.events.set(WATCH_BRANCH, joinBranch2);
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
 
-    //         connections.connection.next(device);
-    //         connections.connection.next(device2);
-    //         await waitAsync();
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([]);
+        });
 
-    //         watchDevices.next('testBranch');
-    //         await waitAsync();
+        it('should stop watching when the device disconnects', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
 
-    //         unwatchDevices.next('testBranch');
-    //         await waitAsync();
+            await server.watchBranchDevices(
+                device1Info.connectionId,
+                'testBranch'
+            );
 
-    //         joinBranch2.next({
-    //             branch: 'testBranch',
-    //         });
-    //         await waitAsync();
+            await server.disconnect(device1Info.connectionId);
 
-    //         expect(device.messages).toEqual([]);
-    //     });
-    // });
+            await server.connect(device1Info);
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([]);
+        });
+    });
 
     // describe(BRANCH_INFO, () => {
     //     it('should send a response with false when the given branch does not exist', async () => {

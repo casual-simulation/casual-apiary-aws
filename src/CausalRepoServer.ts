@@ -403,6 +403,14 @@ export class CausalRepoServer {
         await Promise.all(promises);
     }
 
+    async unwatchBranchDevices(connectionId: string, branch: string) {
+        const namespace = watchBranchNamespace(branch);
+        await this._connectionStore.deleteNamespaceConnection(
+            connectionId,
+            namespace
+        );
+    }
+
     private _setupServer() {
         // this._connectionServer.connection.subscribe(
         // async (conn: CausalRepoSession) => {
