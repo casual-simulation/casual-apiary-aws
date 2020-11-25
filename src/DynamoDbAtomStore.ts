@@ -7,10 +7,7 @@ import {
     PutRequest,
     WriteRequest,
 } from 'aws-sdk/clients/dynamodb';
-
-const MAX_BATCH_ITEM_WRITE_COUNT = 25;
-const MAX_RETRY_COUNT = 5;
-const DEFAULT_BACKOFF_MILLISECONDS = 0.5;
+import { processBatch } from './DynamoDbUtils';
 
 /**
  * Defines a class that specifies a DynamoDB implementation of an ApiaryAtomStore.
@@ -31,7 +28,7 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
             },
         }));
 
-        await this._processBatch(requests);
+        await processBatch(this._client, this._tableName, requests);
     }
 
     async loadAtoms(namespace: string): Promise<Atom<any>[]> {
@@ -76,7 +73,7 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
             },
         }));
 
-        await this._processBatch(requests);
+        await processBatch(this._client, this._tableName, requests);
     }
 
     async clearNamespace(namespace: string): Promise<void> {
@@ -85,40 +82,6 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
             namespace,
             atoms.map((a) => a.hash)
         );
-    }
-
-    private async _processBatch(
-        requests: WriteRequest[],
-        tryCount: number = 0
-    ) {
-        const unprocessedRequests: WriteRequest[] = [];
-        for (let i = 0; i < requests.length; i += MAX_BATCH_ITEM_WRITE_COUNT) {
-            const data = await this._client
-                .batchWrite({
-                    RequestItems: {
-                        [this._tableName]: requests.slice(
-                            i,
-                            i + MAX_BATCH_ITEM_WRITE_COUNT
-                        ),
-                    },
-                })
-                .promise();
-
-            if (data.UnprocessedItems?.[this._tableName]?.length > 0) {
-                unprocessedRequests.push(
-                    ...data.UnprocessedItems[this._tableName]
-                );
-            }
-        }
-
-        if (unprocessedRequests.length > 0) {
-            if (tryCount < MAX_RETRY_COUNT) {
-                await delay(
-                    DEFAULT_BACKOFF_MILLISECONDS * Math.pow(2, tryCount)
-                );
-                return this._processBatch(unprocessedRequests, tryCount + 1);
-            }
-        }
     }
 }
 
@@ -143,8 +106,4 @@ function formatAtom(
             S: JSON.stringify(atom),
         },
     };
-}
-
-function delay(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }

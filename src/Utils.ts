@@ -5,6 +5,10 @@ import axios from 'axios';
 
 export const MESSAGES_BUCKET_NAME = process.env.MESSAGES_BUCKET;
 
+export function delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Gets a new instance of a DynamoDB document client.
  * Can be used to interact with DynamoDB.
