@@ -30,7 +30,7 @@ export function getS3Client() {
             s3ForcePathStyle: true,
             accessKeyId: 'S3RVER',
             secretAccessKey: 'S3RVER',
-            endpoint: new AWS.Endpoint('http://localhost:8000'),
+            endpoint: new AWS.Endpoint('http://localhost:4569'),
         });
     }
     return new AWS.S3();
@@ -51,7 +51,7 @@ export async function uploadMessage(
         .promise();
 
     if (isOffline()) {
-        return `http://localhost:4569/${key}`;
+        return `http://localhost:4569/${MESSAGES_BUCKET_NAME}/${key}`;
     } else {
         return `https://${MESSAGES_BUCKET_NAME}.s3.amazonaws.com/${key}`;
     }
