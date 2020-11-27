@@ -79,6 +79,17 @@ provider:
           Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable'
         - Effect: Allow
           Action:
+              - dynamodb:BatchGetItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:DeleteItem
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable/index/ConnectionIdAndNamespaceIndex'
+        - Effect: Allow
+          Action:
               - s3:PutObject
               - s3:GetObject
               - s3:DeleteObject
