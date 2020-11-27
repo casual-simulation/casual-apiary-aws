@@ -36,8 +36,10 @@ export function getS3Client() {
     return new AWS.S3();
 }
 
-export async function uploadMessage(data: string): Promise<string> {
-    const client = getS3Client();
+export async function uploadMessage(
+    client: AWS.S3,
+    data: string
+): Promise<string> {
     const key = uuid();
     const response = await client
         .putObject({
