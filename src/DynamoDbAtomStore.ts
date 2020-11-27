@@ -67,8 +67,8 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
         const requests: WriteRequest[] = atomHashes.map((hash) => ({
             DeleteRequest: {
                 Key: {
-                    namespace: { S: namespace },
-                    atomHash: { S: hash },
+                    namespace: namespace as any,
+                    atomHash: hash as any,
                 },
             },
         }));
@@ -96,14 +96,8 @@ function formatAtom(
     atom: Atom<any>
 ): PutItemInputAttributeMap {
     return {
-        namespace: {
-            S: namespace,
-        },
-        atomHash: {
-            S: atom.hash,
-        },
-        atomJson: {
-            S: JSON.stringify(atom),
-        },
+        namespace: namespace as any,
+        atomHash: atom.hash as any,
+        atomJson: JSON.stringify(atom) as any,
     };
 }
