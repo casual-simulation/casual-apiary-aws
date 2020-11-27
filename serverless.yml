@@ -120,6 +120,7 @@ resources:
             Type: AWS::DynamoDB::Table
             Properties:
                 TableName: AtomsTable
+                BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: namespace
                       AttributeType: S
@@ -130,30 +131,26 @@ resources:
                       KeyType: HASH
                     - AttributeName: atomHash
                       KeyType: RANGE
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
 
         # A DynamoDB table that stores connections
         ConnectionsTable:
             Type: AWS::DynamoDB::Table
             Properties:
                 TableName: ConnectionsTable
+                BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: connectionId
                       AttributeType: S
                 KeySchema:
                     - AttributeName: connectionId
                       KeyType: HASH
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
 
         # A DynamoDB table that groups connections by namespace
         NamespaceConnectionsTable:
             Type: AWS::DynamoDB::Table
             Properties:
                 TableName: NamespaceConnectionsTable
+                BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: namespace
                       AttributeType: S
@@ -164,9 +161,6 @@ resources:
                       KeyType: HASH
                     - AttributeName: connectionId
                       KeyType: RANGE
-                ProvisionedThroughput:
-                    ReadCapacityUnits: 1
-                    WriteCapacityUnits: 1
                 GlobalSecondaryIndexes:
                     - IndexName: ConnectionIdAndNamespaceIndex
                       KeySchema:
@@ -176,9 +170,6 @@ resources:
                             KeyType: RANGE
                       Projection:
                           ProjectionType: ALL
-                      ProvisionedThroughput:
-                          ReadCapacityUnits: 1
-                          WriteCapacityUnits: 1
 
         # A S3 bucket that is used to handle large messages (larger than 128KB)
         MessagesBucket:
