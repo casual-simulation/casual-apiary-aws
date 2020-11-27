@@ -85,10 +85,17 @@ export function isOffline(): boolean {
  * Parses the given data into a AWS Message.
  * @param data The data to parse.
  */
-export function parseMessage<T>(data: string): T {
+export function parseMessage<T>(data: unknown): T {
     try {
-        const value = JSON.parse(data);
-        return value;
+        if (typeof data === 'string') {
+            const value = JSON.parse(data);
+            return value;
+        } else if (typeof data === 'object') {
+            return <T>(<any>data);
+        } else {
+            console.warn('Unable to parse message!');
+            return null;
+        }
     } catch (err) {
         return null;
     }
