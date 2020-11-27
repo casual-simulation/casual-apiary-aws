@@ -10,12 +10,17 @@ import {
 import AWS, { ApiGatewayManagementApi } from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
 import {
+    ADD_ATOMS,
     Atom,
     atom,
     atomId,
     atomIdToString,
     CausalRepoMessageHandlerMethods,
+    SEND_EVENT,
+    UNWATCH_BRANCH,
+    UNWATCH_BRANCH_DEVICES,
     WATCH_BRANCH,
+    WATCH_BRANCH_DEVICES,
 } from '@casual-simulation/causal-trees';
 import { bot } from '@casual-simulation/aux-common/aux-format-2';
 import {
@@ -40,91 +45,18 @@ import {
     AwsUploadRequest,
     AwsUploadResponse,
 } from './src/AwsMessages';
-
-export const hello: APIGatewayProxyHandler = async (event, _context) => {
-    return {
-        statusCode: 200,
-        body: JSON.stringify(
-            {
-                message:
-                    'Go Serverless Webpack (Typescript) v1.0! Your function executed successfully!',
-                input: event,
-            },
-            null,
-            2
-        ),
-    };
-};
+import { CausalRepoServer } from './src/CausalRepoServer';
+import { DynamoDbConnectionStore } from './src/DynamoDbConnectionStore';
+import { ApiGatewayMessenger } from './src/ApiGatewayMessenger';
+import { DynamoDbAtomStore } from './src/DynamoDbAtomStore';
+import { Message } from './src/ApiaryMessenger';
 
 export const MAX_MESSAGE_SIZE = 128_000;
 
 const ATOMS_TABLE_NAME = 'AtomsTable';
+const CONNECTIONS_TABLE_NAME = 'ConnectionsTable';
+const NAMESPACE_CONNECTIONS_TABLE_NAME = 'NamespaceConnectionsTable';
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
-
-interface DynamoAtom {
-    namespace: string;
-    atomId: string;
-    atomJson: string;
-}
-
-export async function write(
-    event: APIGatewayProxyEvent,
-    context: Context
-): Promise<APIGatewayProxyStructuredResultV2> {
-    const client = getDocumentClient();
-    const botAtom = atom(atomId(uuid(), 1), null, bot(uuid()));
-    const item = formatAtom(DEFAULT_NAMESPACE, botAtom);
-
-    const data = await client
-        .put({
-            TableName: ATOMS_TABLE_NAME,
-            Item: item,
-        })
-        .promise();
-
-    return {
-        statusCode: 200,
-    };
-}
-
-export async function read(
-    event: APIGatewayProxyEvent,
-    context: Context
-): Promise<APIGatewayProxyStructuredResultV2> {
-    const client = getDocumentClient();
-    let result = await client
-        .query({
-            TableName: ATOMS_TABLE_NAME,
-            ProjectionExpression: 'atomJson',
-            KeyConditionExpression: 'namespace = :namespace',
-            ExpressionAttributeValues: {
-                ':namespace': DEFAULT_NAMESPACE,
-            },
-        })
-        .promise();
-
-    let atoms = [] as Atom<any>[];
-    while (result?.$response.data) {
-        for (let item of result.$response.data.Items) {
-            const atom = JSON.parse(item.atomJson);
-            atoms.push(atom);
-        }
-
-        if (result.$response.hasNextPage()) {
-            const request = result.$response.nextPage();
-            if (request) {
-                result = await request.promise();
-                continue;
-            }
-        }
-        result = null;
-    }
-
-    return {
-        statusCode: 200,
-        body: JSON.stringify(atoms),
-    };
-}
 
 export async function connect(
     event: APIGatewayProxyEvent,
@@ -146,6 +78,9 @@ export async function disconnect(
     console.log(
         `Got WebSocket disconnect: ${event.requestContext.connectionId}`
     );
+    const server = getCausalRepoServer(event);
+    await server.disconnect(event.requestContext.connectionId);
+
     return {
         statusCode: 200,
     };
@@ -204,8 +139,7 @@ export async function processUpload(
         uploadUrl: uploadUrl,
     };
 
-    await sendMessageToClient(
-        callbackUrl(event),
+    await getMessenger(event).sendRaw(
         event.requestContext.connectionId,
         JSON.stringify(response)
     );
@@ -225,59 +159,74 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
         type: 'login_result',
     };
 
-    await sendPacket(event, result);
+    const server = getCausalRepoServer(event);
+    await server.connect({
+        connectionId: event.requestContext.connectionId,
+        sessionId: packet.sessionId,
+        username: packet.username,
+        token: packet.token,
+    });
+
+    await getMessenger(event).sendPacket(
+        event.requestContext.connectionId,
+        result
+    );
 }
 
 async function messagePacket(
     event: APIGatewayProxyEvent,
     packet: MessagePacket
 ) {
-    handleEvents(packet, {
-        [WATCH_BRANCH]: async (watchBranchEvent) => {},
-    });
-}
-
-function formatAtom(namespace: string, atom: Atom<any>): DynamoAtom {
-    return {
-        namespace,
-        atomId: atomIdToString(atom.id),
-        atomJson: JSON.stringify(atom),
+    const server = getCausalRepoServer(event);
+    const message: Message = {
+        name: <any>packet.channel,
+        data: packet.data,
     };
+    const connectionId = event.requestContext.connectionId;
+    if (message.name === WATCH_BRANCH) {
+        await server.watchBranch(connectionId, message.data);
+    } else if (message.name === ADD_ATOMS) {
+        await server.addAtoms(connectionId, message.data);
+    } else if (message.name === UNWATCH_BRANCH) {
+        await server.unwatchBranch(connectionId, message.data);
+    } else if (message.name === SEND_EVENT) {
+        await server.sendEvent(connectionId, message.data);
+    } else if (message.name == WATCH_BRANCH_DEVICES) {
+        await server.watchBranchDevices(connectionId, message.data);
+    } else if (message.name === UNWATCH_BRANCH_DEVICES) {
+        await server.unwatchBranchDevices(connectionId, message.data);
+    }
 }
 
-function sendPacket(event: APIGatewayProxyEvent, packet: Packet) {
-    return sendData(event, JSON.stringify(packet));
-}
+let _server: CausalRepoServer;
+let _messenger: ApiGatewayMessenger;
 
-async function sendData(event: APIGatewayProxyEvent, data: string) {
-    // TODO: Calculate the real message size instead of just assuming that
-    // each character is 1 byte
-    if (data.length > MAX_MESSAGE_SIZE) {
-        const url = await uploadMessage(data);
-
-        // Request download
-        const downloadRequest: AwsDownloadRequest = {
-            type: 'download_request',
-            url: url,
-        };
-
-        await sendMessageToClient(
-            callbackUrl(event),
-            event.requestContext.connectionId,
-            JSON.stringify(downloadRequest)
+function getCausalRepoServer(event: APIGatewayProxyEvent) {
+    if (!_server) {
+        const documentClient = getDocumentClient();
+        const atomStore = new DynamoDbAtomStore(
+            ATOMS_TABLE_NAME,
+            documentClient
         );
-    } else {
-        const message: AwsMessageData = {
-            type: 'message',
-            data: data,
-        };
-
-        await sendMessageToClient(
-            callbackUrl(event),
-            event.requestContext.connectionId,
-            JSON.stringify(message)
+        const connectionStore = new DynamoDbConnectionStore(
+            CONNECTIONS_TABLE_NAME,
+            NAMESPACE_CONNECTIONS_TABLE_NAME,
+            documentClient
+        );
+        _server = new CausalRepoServer(
+            connectionStore,
+            atomStore,
+            getMessenger(event)
         );
     }
+    return _server;
+}
+
+function getMessenger(event: APIGatewayProxyEvent) {
+    if (!_messenger) {
+        _messenger = new ApiGatewayMessenger(callbackUrl(event));
+    }
+    return _messenger;
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {
@@ -287,23 +236,6 @@ function callbackUrl(event: APIGatewayProxyEvent): string {
     const domain = event.requestContext.domainName;
     const path = event.requestContext.stage;
     return `https://${domain}/${path}`;
-}
-
-async function sendMessageToClient(
-    url: string,
-    connectionId: string,
-    payload: string
-) {
-    const api = new ApiGatewayManagementApi({
-        apiVersion: '2018-11-29',
-        endpoint: url,
-    });
-    await api
-        .postToConnection({
-            ConnectionId: connectionId,
-            Data: payload,
-        })
-        .promise();
 }
 
 function handleEvents(

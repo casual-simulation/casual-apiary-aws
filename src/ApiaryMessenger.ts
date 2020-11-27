@@ -9,8 +9,13 @@ import {
     DisconnectedFromBranchEvent,
     ReceiveDeviceActionEvent,
     RECEIVE_EVENT,
+    SendRemoteActionEvent,
+    SEND_EVENT,
+    UNWATCH_BRANCH,
+    UNWATCH_BRANCH_DEVICES,
     WatchBranchEvent,
     WATCH_BRANCH,
+    WATCH_BRANCH_DEVICES,
 } from '@casual-simulation/causal-trees';
 
 /**
@@ -36,7 +41,11 @@ export type Message =
     | AtomsReceivedMessage
     | ReceiveMessageMessage
     | DeviceConnectedToBranchMessage
-    | DeviceDisconnectedFromBranchMessage;
+    | DeviceDisconnectedFromBranchMessage
+    | UnwatchBranchMessage
+    | SendEventMessage
+    | WatchBranchDevicesMessage
+    | UnatchBranchDevicesMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -65,4 +74,24 @@ export interface DeviceConnectedToBranchMessage {
 export interface DeviceDisconnectedFromBranchMessage {
     name: typeof DEVICE_DISCONNECTED_FROM_BRANCH;
     data: DisconnectedFromBranchEvent;
+}
+
+export interface UnwatchBranchMessage {
+    name: typeof UNWATCH_BRANCH;
+    data: string;
+}
+
+export interface SendEventMessage {
+    name: typeof SEND_EVENT;
+    data: SendRemoteActionEvent;
+}
+
+export interface WatchBranchDevicesMessage {
+    name: typeof WATCH_BRANCH_DEVICES;
+    data: string;
+}
+
+export interface UnatchBranchDevicesMessage {
+    name: typeof UNWATCH_BRANCH_DEVICES;
+    data: string;
 }
