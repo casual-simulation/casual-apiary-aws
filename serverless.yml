@@ -155,13 +155,13 @@ resources:
                 AccessControl: 'PublicRead'
                 LifecycleConfiguration:
                     Rules:
-                        - ID: 'CleanupRule'
+                        - Id: 'CleanupRule'
                           Prefix: ''
                           Status: Enabled
                           ExpirationInDays: 1
                 CorsConfiguration:
                     CorsRules:
-                        - ID: 'AllowReadWriteCorsRule'
+                        - Id: 'AllowReadWriteCorsRule'
                           AllowedMethods: ['GET', 'PUT']
                           AllowedOrigins: ['*']
                           AllowedHeaders: ['*']
