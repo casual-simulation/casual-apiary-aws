@@ -21,6 +21,8 @@ custom:
     s3:
         host: localhost
         directory: ./.s3
+        cors: ./s3-cors.xml
+        allowMismatchedSignatures: true
     messagesBucket: 'aux-messages-bucket-${opt:stage}'
 
 # Add the serverless-webpack plugin
