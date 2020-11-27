@@ -90,11 +90,6 @@ export async function message(
     event: APIGatewayProxyEvent,
     context: Context
 ): Promise<APIGatewayProxyStructuredResultV2> {
-    console.log(
-        `Got WebSocket message from ${event.requestContext.connectionId}`,
-        event.body
-    );
-
     const message = parseMessage<AwsMessage>(event.body);
 
     if (message) {
@@ -116,8 +111,6 @@ export async function message(
 }
 
 async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
-    console.log('Got Message: ', packet);
-
     if (packet) {
         if (packet.type === 'login') {
             await login(event, packet);
