@@ -202,7 +202,7 @@ function getCausalRepoServer(event: APIGatewayProxyEvent) {
     if (!_server) {
         const atomStore = getAtomStore();
         const connectionStore = getConnectionStore();
-        
+
         _server = new CausalRepoServer(
             connectionStore,
             atomStore,
@@ -227,17 +227,17 @@ function getConnectionStore() {
 function getAtomStore() {
     if (!_atomStore) {
         const documentClient = getDocumentClient();
-        _atomStore = new DynamoDbAtomStore(
-            ATOMS_TABLE_NAME,
-            documentClient
-        );
+        _atomStore = new DynamoDbAtomStore(ATOMS_TABLE_NAME, documentClient);
     }
     return _atomStore;
 }
 
 function getMessenger(event: APIGatewayProxyEvent) {
     if (!_messenger) {
-        _messenger = new ApiGatewayMessenger(callbackUrl(event), getConnectionStore());
+        _messenger = new ApiGatewayMessenger(
+            callbackUrl(event),
+            getConnectionStore()
+        );
     }
     return _messenger;
 }
