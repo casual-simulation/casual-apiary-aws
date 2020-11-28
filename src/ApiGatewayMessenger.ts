@@ -1,4 +1,5 @@
 import { ApiGatewayManagementApi } from 'aws-sdk';
+import { ApiaryConnectionStore } from './ApiaryConnectionStore';
 import { ApiaryMessenger, Message } from './ApiaryMessenger';
 import { AwsDownloadRequest, AwsMessageData } from './AwsMessages';
 import { Packet } from './Events';
@@ -12,13 +13,15 @@ export const MAX_MESSAGE_SIZE = 128_000;
 export class ApiGatewayMessenger implements ApiaryMessenger {
     private _api: ApiGatewayManagementApi;
     private _s3: AWS.S3;
+    private _connections: ApiaryConnectionStore;
 
-    constructor(endpoint: string) {
+    constructor(endpoint: string, connectionStore: ApiaryConnectionStore) {
         this._api = new ApiGatewayManagementApi({
             apiVersion: '2018-11-29',
             endpoint: endpoint,
         });
         this._s3 = getS3Client();
+        this._connections = connectionStore;
     }
 
     async sendMessage(
@@ -68,12 +71,22 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
 
             const promises = connectionIds.map(async (id) => {
                 if (id !== excludeConnection) {
-                    await this._api
-                        .postToConnection({
-                            ConnectionId: id,
-                            Data: downloadRequestJson,
-                        })
-                        .promise();
+                    try {
+                        await this._api
+                            .postToConnection({
+                                ConnectionId: id,
+                                Data: downloadRequestJson,
+                            })
+                            .promise();
+                    } catch (err) {
+                        if (err.code === 'GoneException') {
+                            // The connection no longer exists. We should remove it.
+                            console.log(
+                                `[ApiGatewayMessenger] Connection ${id} missing. Removing.`
+                            );
+                            await this._connections.clearConnection(id);
+                        }
+                    }
                 }
             });
             await Promise.all(promises);

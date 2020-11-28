@@ -9,11 +9,20 @@ export function delay(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+let _documentClient: AWS.DynamoDB.DocumentClient;
+
 /**
  * Gets a new instance of a DynamoDB document client.
  * Can be used to interact with DynamoDB.
  */
 export function getDocumentClient() {
+    if (!_documentClient) {
+        _documentClient = createDocumentClient();
+    }
+    return _documentClient;
+}
+
+function createDocumentClient() {
     if (isOffline()) {
         return new AWS.DynamoDB.DocumentClient({
             region: 'localhost',

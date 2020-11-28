@@ -50,6 +50,8 @@ import { DynamoDbConnectionStore } from './src/DynamoDbConnectionStore';
 import { ApiGatewayMessenger } from './src/ApiGatewayMessenger';
 import { DynamoDbAtomStore } from './src/DynamoDbAtomStore';
 import { Message } from './src/ApiaryMessenger';
+import { ApiaryConnectionStore } from './src/ApiaryConnectionStore';
+import { ApiaryAtomStore } from './src/ApiaryAtomStore';
 
 export const MAX_MESSAGE_SIZE = 128_000;
 
@@ -191,21 +193,16 @@ async function messagePacket(
     }
 }
 
-let _server: CausalRepoServer;
+let _connectionStore: ApiaryConnectionStore;
+let _atomStore: ApiaryAtomStore;
 let _messenger: ApiGatewayMessenger;
+let _server: CausalRepoServer;
 
 function getCausalRepoServer(event: APIGatewayProxyEvent) {
     if (!_server) {
-        const documentClient = getDocumentClient();
-        const atomStore = new DynamoDbAtomStore(
-            ATOMS_TABLE_NAME,
-            documentClient
-        );
-        const connectionStore = new DynamoDbConnectionStore(
-            CONNECTIONS_TABLE_NAME,
-            NAMESPACE_CONNECTIONS_TABLE_NAME,
-            documentClient
-        );
+        const atomStore = getAtomStore();
+        const connectionStore = getConnectionStore();
+        
         _server = new CausalRepoServer(
             connectionStore,
             atomStore,
@@ -215,9 +212,32 @@ function getCausalRepoServer(event: APIGatewayProxyEvent) {
     return _server;
 }
 
+function getConnectionStore() {
+    if (!_connectionStore) {
+        const documentClient = getDocumentClient();
+        _connectionStore = new DynamoDbConnectionStore(
+            CONNECTIONS_TABLE_NAME,
+            NAMESPACE_CONNECTIONS_TABLE_NAME,
+            documentClient
+        );
+    }
+    return _connectionStore;
+}
+
+function getAtomStore() {
+    if (!_atomStore) {
+        const documentClient = getDocumentClient();
+        _atomStore = new DynamoDbAtomStore(
+            ATOMS_TABLE_NAME,
+            documentClient
+        );
+    }
+    return _atomStore;
+}
+
 function getMessenger(event: APIGatewayProxyEvent) {
     if (!_messenger) {
-        _messenger = new ApiGatewayMessenger(callbackUrl(event));
+        _messenger = new ApiGatewayMessenger(callbackUrl(event), getConnectionStore());
     }
     return _messenger;
 }
