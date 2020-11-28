@@ -18,18 +18,22 @@ export async function processBatch(
 ) {
     const unprocessedRequests: WriteRequest[] = [];
     for (let i = 0; i < requests.length; i += MAX_BATCH_ITEM_WRITE_COUNT) {
+        const slice = requests.slice(i, i + MAX_BATCH_ITEM_WRITE_COUNT);
         const data = await client
             .batchWrite({
                 RequestItems: {
-                    [tableName]: requests.slice(
-                        i,
-                        i + MAX_BATCH_ITEM_WRITE_COUNT
-                    ),
+                    [tableName]: slice,
                 },
             })
             .promise();
 
         if (data.UnprocessedItems?.[tableName]?.length > 0) {
+            console.log(
+                '[DynamoDbUtils] Some items were not processed: ' +
+                    data.UnprocessedItems?.[tableName]?.length +
+                    '/' +
+                    slice.length
+            );
             unprocessedRequests.push(...data.UnprocessedItems[tableName]);
         }
     }
