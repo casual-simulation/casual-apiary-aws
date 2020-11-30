@@ -85,6 +85,8 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
                                 `[ApiGatewayMessenger] Connection ${id} missing. Removing.`
                             );
                             await this._connections.clearConnection(id);
+                        } else {
+                            throw err;
                         }
                     }
                 }
@@ -99,12 +101,24 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
 
             const promises = connectionIds.map(async (id) => {
                 if (id !== excludeConnection) {
-                    await this._api
-                        .postToConnection({
-                            ConnectionId: id,
-                            Data: messageJson,
-                        })
-                        .promise();
+                    try {
+                        await this._api
+                            .postToConnection({
+                                ConnectionId: id,
+                                Data: messageJson,
+                            })
+                            .promise();
+                    } catch (err) {
+                        if (err.code === 'GoneException') {
+                            // The connection no longer exists. We should remove it.
+                            console.log(
+                                `[ApiGatewayMessenger] Connection ${id} missing. Removing.`
+                            );
+                            await this._connections.clearConnection(id);
+                        } else {
+                            throw err;
+                        }
+                    }
                 }
             });
             await Promise.all(promises);
