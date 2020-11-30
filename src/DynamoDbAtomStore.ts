@@ -8,6 +8,7 @@ import {
     WriteRequest,
 } from 'aws-sdk/clients/dynamodb';
 import { processBatch } from './DynamoDbUtils';
+import { sortBy } from 'lodash';
 
 /**
  * Defines a class that specifies a DynamoDB implementation of an ApiaryAtomStore.
@@ -60,7 +61,7 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
             result = null;
         }
 
-        return atoms;
+        return sortBy(atoms, (a) => a.id.timestamp);
     }
 
     async deleteAtoms(namespace: string, atomHashes: string[]): Promise<void> {
