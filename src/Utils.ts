@@ -2,6 +2,7 @@ import AWS from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
 import { AwsMessage } from './AwsMessages';
 import axios from 'axios';
+import { URL } from 'url';
 
 export const MESSAGES_BUCKET_NAME = process.env.MESSAGES_BUCKET;
 
@@ -40,9 +41,12 @@ export function getS3Client() {
             accessKeyId: 'S3RVER',
             secretAccessKey: 'S3RVER',
             endpoint: new AWS.Endpoint('http://localhost:4569'),
+            signatureVersion: 'v4',
         });
     }
-    return new AWS.S3();
+    return new AWS.S3({
+        signatureVersion: 'v4',
+    });
 }
 
 export async function uploadMessage(
@@ -56,6 +60,7 @@ export async function uploadMessage(
             Key: key,
             ContentType: 'application/json',
             Body: data,
+            ACL: 'public-read',
         })
         .promise();
 
@@ -73,14 +78,21 @@ export async function getMessageUploadUrl(): Promise<string> {
         Bucket: MESSAGES_BUCKET_NAME,
         Key: key,
         ContentType: 'application/json',
+        ACL: 'bucket-owner-full-control',
     };
     const url = await client.getSignedUrlPromise('putObject', params);
     return url;
 }
 
 export async function downloadObject(url: string): Promise<string> {
-    const response = await axios.get(url);
-    return response.data;
+    const parsed = new URL(url);
+    const client = getS3Client();
+    const params: AWS.S3.Types.GetObjectRequest = {
+        Bucket: MESSAGES_BUCKET_NAME,
+        Key: parsed.pathname.slice(1),
+    };
+    const response = await client.getObject(params).promise();
+    return response.Body.toString('utf8');
 }
 
 /**
