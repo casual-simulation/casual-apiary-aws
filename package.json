@@ -9,7 +9,8 @@
         "test:watch": "jest --watchAll",
         "test": "jest --verbose",
         "test:ci": "jest --no-cache --ci --reporters=default",
-        "dynamodb:install": "serverless dynamodb install --stage dev"
+        "dynamodb:install": "serverless dynamodb install --stage dev",
+        "deploy:dev": "serverless deploy --stage dev"
     },
     "husky": {
         "hooks": {
