@@ -93,7 +93,8 @@ provider:
               - s3:PutObject
               - s3:GetObject
               - s3:DeleteObject
-          Resource: 'arn:aws:s3:::messages-bucket/*'
+              - s3:PutObjectAcl
+          Resource: 'arn:aws:s3:::${self:custom.messagesBucket}/*'
 
 functions:
     connect:
