@@ -1,4 +1,14 @@
 import {
+    BotAction,
+    botAdded,
+    createBot,
+    isBot,
+} from '@casual-simulation/aux-common';
+import {
+    applyEvents,
+    auxTree,
+} from '@casual-simulation/aux-common/aux-format-2';
+import {
     AddAtomsEvent,
     ADD_ATOMS,
     ATOMS_RECEIVED,
@@ -304,6 +314,47 @@ export class CausalRepoServer {
             namespace
         );
 
+        if (event.action.type === 'remote') {
+            const action = event.action.event as BotAction;
+            if (action.type === 'setup_story') {
+                // Process setup_story
+                const namespace = branchNamespace(action.channel);
+
+                const count = await this._atomStore.countAtoms(namespace);
+                if (count <= 0) {
+                    console.log(
+                        `[CasualRepoServer] [${namespace}] Setting up channel...`
+                    );
+
+                    const tree = auxTree();
+                    const result = applyEvents(
+                        tree,
+                        [
+                            botAdded(
+                                createBot(
+                                    undefined,
+                                    isBot(action.botOrMod)
+                                        ? action.botOrMod.tags
+                                        : action.botOrMod
+                                )
+                            ),
+                        ],
+                        'shared'
+                    );
+
+                    const atoms = result.tree.weave.getAtoms();
+
+                    await this._atomStore.saveAtoms(namespace, atoms);
+                } else {
+                    console.log(
+                        `[CasualRepoServer] [${namespace}] Skipping setup because channel already exists.`
+                    );
+                }
+
+                return;
+            }
+        }
+
         let finalAction: RemoteAction | RemoteActionResult | RemoteActionError;
         if (
             event.action.deviceId ||
@@ -321,19 +372,21 @@ export class CausalRepoServer {
                 Math.max(Math.floor(Math.random() * connectedDevices.length), 0)
             );
             const randomDevice = connectedDevices[randomDeviceIndex];
-            finalAction = {
-                ...event.action,
-                sessionId: randomDevice.sessionId,
-            };
+            if (randomDevice) {
+                finalAction = {
+                    ...event.action,
+                    sessionId: randomDevice.sessionId,
+                };
+            }
+        }
+
+        if (!finalAction) {
+            return;
         }
 
         const currentConnection = await this._connectionStore.getConnection(
             connectionId
         );
-
-        if (!finalAction) {
-            return;
-        }
         const targetedDevices = connectedDevices.filter((d) =>
             isEventForDevice(finalAction, d)
         );
