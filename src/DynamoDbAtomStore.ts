@@ -64,6 +64,21 @@ export class DynamoDbAtomStore implements ApiaryAtomStore {
         return sortBy(atoms, (a) => a.id.timestamp);
     }
 
+    async countAtoms(namespace: string): Promise<number> {
+        let result = await this._client
+            .query({
+                TableName: this._tableName,
+                Select: 'COUNT',
+                KeyConditionExpression: 'namespace = :namespace',
+                ExpressionAttributeValues: {
+                    ':namespace': namespace,
+                },
+            })
+            .promise();
+
+        return result.Count;
+    }
+
     async deleteAtoms(namespace: string, atomHashes: string[]): Promise<void> {
         const requests: WriteRequest[] = atomHashes.map((hash) => ({
             DeleteRequest: {

@@ -27,6 +27,10 @@ export class MemoryApiaryAtomStore implements ApiaryAtomStore {
         return sortBy(this._getAtomList(namespace), (a) => a.id.timestamp);
     }
 
+    async countAtoms(namespace: string): Promise<number> {
+        return this._getAtomList(namespace).length;
+    }
+
     async deleteAtoms(namespace: string, atomHashes: string[]): Promise<void> {
         let list = this._getAtomList(namespace);
         for (let hash of atomHashes) {

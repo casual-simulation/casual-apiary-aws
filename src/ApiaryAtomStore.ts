@@ -29,4 +29,10 @@ export interface ApiaryAtomStore {
      * @param namespace The namespace to clear.
      */
     clearNamespace(namespace: string): Promise<void>;
+
+    /**
+     * Counts the number of atoms that are stored in the given namespace.
+     * @param namespace The namespace.
+     */
+    countAtoms(namespace: string): Promise<number>;
 }
