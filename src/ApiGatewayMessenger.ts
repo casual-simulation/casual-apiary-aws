@@ -1,7 +1,11 @@
 import { ApiGatewayManagementApi } from 'aws-sdk';
 import { ApiaryConnectionStore } from './ApiaryConnectionStore';
 import { ApiaryMessenger, Message } from './ApiaryMessenger';
-import { AwsDownloadRequest, AwsMessageData } from './AwsMessages';
+import {
+    AwsDownloadRequest,
+    AwsMessageData,
+    AwsMessageTypes,
+} from './AwsMessages';
 import { Packet } from './Events';
 import { getS3Client, uploadMessage } from './Utils';
 
@@ -63,10 +67,10 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
             const url = await uploadMessage(this._s3, data);
 
             // Request download
-            const downloadRequest: AwsDownloadRequest = {
-                type: 'download_request',
-                url: url,
-            };
+            const downloadRequest: AwsDownloadRequest = [
+                AwsMessageTypes.DownloadRequest,
+                url,
+            ];
             const downloadRequestJson = JSON.stringify(downloadRequest);
 
             const promises = connectionIds.map(async (id) => {
@@ -93,10 +97,7 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
             });
             await Promise.all(promises);
         } else {
-            const message: AwsMessageData = {
-                type: 'message',
-                data: data,
-            };
+            const message: AwsMessageData = [AwsMessageTypes.Message, data];
             const messageJson = JSON.stringify(message);
 
             const promises = connectionIds.map(async (id) => {

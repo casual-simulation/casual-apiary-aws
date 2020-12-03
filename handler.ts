@@ -42,6 +42,7 @@ import {
     AwsDownloadRequest,
     AwsMessage,
     AwsMessageData,
+    AwsMessageTypes,
     AwsUploadRequest,
     AwsUploadResponse,
 } from './src/AwsMessages';
@@ -96,14 +97,14 @@ export async function message(
     const message = parseMessage<AwsMessage>(event.body);
 
     if (message) {
-        if (message.type === 'message') {
-            const packet = parseMessage<Packet>(message.data);
+        if (message[0] === AwsMessageTypes.Message) {
+            const packet = parseMessage<Packet>(message[1]);
             if (packet) {
                 await processPacket(event, packet);
             }
-        } else if (message.type === 'upload_request') {
+        } else if (message[0] === AwsMessageTypes.UploadRequest) {
             await processUpload(event, message);
-        } else if (message.type === 'download_request') {
+        } else if (message[0] === AwsMessageTypes.DownloadRequest) {
             await processDownload(event, message);
         }
     }
@@ -129,11 +130,11 @@ export async function processUpload(
 ) {
     const uploadUrl = await getMessageUploadUrl();
 
-    const response: AwsUploadResponse = {
-        type: 'upload_response',
-        id: message.id,
-        uploadUrl: uploadUrl,
-    };
+    const response: AwsUploadResponse = [
+        AwsMessageTypes.UploadResponse,
+        message[1],
+        uploadUrl,
+    ];
 
     await getMessenger(event).sendRaw(
         event.requestContext.connectionId,
@@ -145,7 +146,7 @@ export async function processDownload(
     event: APIGatewayProxyEvent,
     message: AwsDownloadRequest
 ) {
-    const data = await downloadObject(message.url);
+    const data = await downloadObject(message[1]);
     const packet = parseMessage<Packet>(data);
     await processPacket(event, packet);
 }
