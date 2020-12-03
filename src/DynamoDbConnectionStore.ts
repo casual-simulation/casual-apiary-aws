@@ -244,4 +244,15 @@ export class DynamoDbConnectionStore implements ApiaryConnectionStore {
 
         return [];
     }
+
+    async countConnections(): Promise<number> {
+        const result = await this._client
+            .scan({
+                TableName: this._connectionsTableName,
+                Select: 'COUNT',
+            })
+            .promise();
+
+        return result.Count;
+    }
 }

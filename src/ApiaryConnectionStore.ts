@@ -66,6 +66,11 @@ export interface ApiaryConnectionStore {
      * @param connectionId The ID of the connection.
      */
     getConnections(connectionId: string): Promise<DeviceNamespaceConnection[]>;
+
+    /**
+     * Counts the number of active connections.
+     */
+    countConnections(): Promise<number>;
 }
 
 /**
