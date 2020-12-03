@@ -2845,8 +2845,8 @@ describe('CausalRepoServer', () => {
 
     describe('isEventForDevice()', () => {
         const usernameCases = [
-            [true, 'matches', 'username', 'username'],
-            [false, 'does not match', 'username', 'no match'],
+            [true, 'matches', 'username', 'username'] as const,
+            [false, 'does not match', 'username', 'no match'] as const,
         ];
 
         it.each(usernameCases)(
@@ -2873,8 +2873,8 @@ describe('CausalRepoServer', () => {
         );
 
         const sessionIdCases = [
-            [true, 'matches', 'sessionId', 'sessionId'],
-            [false, 'does not match', 'sessionId', 'no match'],
+            [true, 'matches', 'sessionId', 'sessionId'] as const,
+            [false, 'does not match', 'sessionId', 'no match'] as const,
         ];
 
         it.each(sessionIdCases)(
@@ -2901,8 +2901,8 @@ describe('CausalRepoServer', () => {
         );
 
         const deviceIdCases = [
-            [true, 'matches', 'deviceId', 'deviceId'],
-            [false, 'does not match', 'deviceId', 'no match'],
+            [true, 'matches', 'deviceId', 'deviceId'] as const,
+            [false, 'does not match', 'deviceId', 'no match'] as const,
         ];
 
         it.each(deviceIdCases)(
