@@ -10,7 +10,9 @@
         "test": "jest --verbose",
         "test:ci": "jest --no-cache --ci --reporters=default",
         "dynamodb:install": "serverless dynamodb install --stage dev",
-        "deploy:dev": "serverless deploy --stage dev"
+        "deploy:dev": "serverless deploy --stage dev",
+        "deploy:casualos-dev": "serverless deploy --stage casualos-dev",
+        "deploy:boormanlabs": "serverless deploy --stage boormanlabs"
     },
     "husky": {
         "hooks": {

@@ -1,5 +1,5 @@
 service: 'casual-apiary-aws'
-org: casualsimulation
+org: casualos
 app: casual-apiary
 
 frameworkVersion: '2'
@@ -24,6 +24,9 @@ custom:
         cors: ./s3-cors.xml
         allowMismatchedSignatures: true
     messagesBucket: 'aux-messages-bucket-${opt:stage}'
+    atomsTable: 'AtomsTable-${opt:stage}'
+    connectionsTable: 'ConnectionsTable-${opt:stage}'
+    namespaceConnectionsTable: 'NamespaceConnectionsTable-${opt:stage}'
 
 # Add the serverless-webpack plugin
 plugins:
@@ -37,12 +40,15 @@ plugins:
 provider:
     name: aws
     runtime: nodejs12.x
-    profile: casualsimulation
+    profile: casualos
     apiGateway:
         shouldStartNameWithService: true
         minimumCompressionSize: 1024
     environment:
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+        ATOMS_TABLE: '${self:custom.atomsTable}'
+        CONNECTIONS_TABLE: '${self:custom.connectionsTable}'
+        NAMESPACE_CONNECTIONS_TABLE: '${self:custom.namespaceConnectionsTable}'
     iamRoleStatements:
         - Effect: Allow
           Action:
@@ -54,7 +60,7 @@ provider:
               - dynamodb:Query
               - dynamodb:Scan
               - dynamodb:UpdateItem
-          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/AtomsTable'
+          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:custom.atomsTable}'
         - Effect: Allow
           Action:
               - dynamodb:BatchGetItem
@@ -65,7 +71,7 @@ provider:
               - dynamodb:Query
               - dynamodb:Scan
               - dynamodb:UpdateItem
-          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/ConnectionsTable'
+          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:custom.connectionsTable}'
         - Effect: Allow
           Action:
               - dynamodb:BatchGetItem
@@ -76,7 +82,7 @@ provider:
               - dynamodb:Query
               - dynamodb:Scan
               - dynamodb:UpdateItem
-          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable'
+          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable-${opt:stage}'
         - Effect: Allow
           Action:
               - dynamodb:BatchGetItem
@@ -87,7 +93,7 @@ provider:
               - dynamodb:Query
               - dynamodb:Scan
               - dynamodb:UpdateItem
-          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable/index/ConnectionIdAndNamespaceIndex'
+          Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/NamespaceConnectionsTable-${opt:stage}/index/ConnectionIdAndNamespaceIndex'
         - Effect: Allow
           Action:
               - s3:PutObject
@@ -120,7 +126,7 @@ resources:
         AtomsTable:
             Type: AWS::DynamoDB::Table
             Properties:
-                TableName: AtomsTable
+                TableName: '${self:custom.atomsTable}'
                 BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: namespace
@@ -137,7 +143,7 @@ resources:
         ConnectionsTable:
             Type: AWS::DynamoDB::Table
             Properties:
-                TableName: ConnectionsTable
+                TableName: '${self:custom.connectionsTable}'
                 BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: connectionId
@@ -150,7 +156,7 @@ resources:
         NamespaceConnectionsTable:
             Type: AWS::DynamoDB::Table
             Properties:
-                TableName: NamespaceConnectionsTable
+                TableName: '${self:custom.namespaceConnectionsTable}'
                 BillingMode: PAY_PER_REQUEST
                 AttributeDefinitions:
                     - AttributeName: namespace

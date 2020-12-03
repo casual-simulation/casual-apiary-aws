@@ -55,9 +55,10 @@ import { ApiaryAtomStore } from './src/ApiaryAtomStore';
 
 export const MAX_MESSAGE_SIZE = 128_000;
 
-const ATOMS_TABLE_NAME = 'AtomsTable';
-const CONNECTIONS_TABLE_NAME = 'ConnectionsTable';
-const NAMESPACE_CONNECTIONS_TABLE_NAME = 'NamespaceConnectionsTable';
+export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
+export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
+export const NAMESPACE_CONNECTIONS_TABLE_NAME =
+    process.env.NAMESPACE_CONNECTIONS_TABLE;
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
 
 export async function connect(
