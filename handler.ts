@@ -49,7 +49,7 @@ import { CausalRepoServer } from './src/CausalRepoServer';
 import { DynamoDbConnectionStore } from './src/DynamoDbConnectionStore';
 import { ApiGatewayMessenger } from './src/ApiGatewayMessenger';
 import { DynamoDbAtomStore } from './src/DynamoDbAtomStore';
-import { Message } from './src/ApiaryMessenger';
+import { DEVICE_COUNT, Message } from './src/ApiaryMessenger';
 import { ApiaryConnectionStore } from './src/ApiaryConnectionStore';
 import { ApiaryAtomStore } from './src/ApiaryAtomStore';
 
@@ -191,6 +191,8 @@ async function messagePacket(
         await server.watchBranchDevices(connectionId, message.data);
     } else if (message.name === UNWATCH_BRANCH_DEVICES) {
         await server.unwatchBranchDevices(connectionId, message.data);
+    } else if (message.name === DEVICE_COUNT) {
+        await server.deviceCount(connectionId, <string>(<any>message.data));
     }
 }
 
