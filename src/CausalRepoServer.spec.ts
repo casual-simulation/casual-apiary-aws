@@ -39,6 +39,7 @@ import { setupStory } from '@casual-simulation/aux-common/bots/BotEvents';
 import { createBot } from '@casual-simulation/aux-common/bots/BotCalculations';
 import uuid from 'uuid/v4';
 import { bot, tag, value } from '@casual-simulation/aux-common/aux-format-2';
+import { DEVICE_COUNT } from './ApiaryMessenger';
 // import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
 // import {
 //     hashPassword,
@@ -2214,6 +2215,50 @@ describe('CausalRepoServer', () => {
             });
 
             expect(messenger.getMessages(device1Info.connectionId)).toEqual([]);
+        });
+    });
+
+    describe(DEVICE_COUNT, () => {
+        it('should send a response with the number of devices', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+
+            await server.deviceCount(device1Info.connectionId, null);
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: DEVICE_COUNT,
+                    data: {
+                        branch: null,
+                        count: 2,
+                    },
+                },
+            ]);
+        });
+
+        it('should send a response with the number of devices that are connected to the given branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+            });
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            await server.deviceCount(device1Info.connectionId, 'testBranch');
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: DEVICE_COUNT,
+                    data: {
+                        branch: 'testBranch',
+                        count: 2,
+                    },
+                },
+            ]);
         });
     });
 

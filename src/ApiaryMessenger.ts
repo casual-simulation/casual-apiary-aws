@@ -19,6 +19,11 @@ import {
 } from '@casual-simulation/causal-trees';
 
 /**
+ * The name of the event which gets the number of devices.
+ */
+export const DEVICE_COUNT = 'repo/device_count';
+
+/**
  * Defines an interface that is capable of sending messages to connections.
  */
 export interface ApiaryMessenger {
@@ -45,7 +50,8 @@ export type Message =
     | UnwatchBranchMessage
     | SendEventMessage
     | WatchBranchDevicesMessage
-    | UnatchBranchDevicesMessage;
+    | UnatchBranchDevicesMessage
+    | DeviceCountMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -94,4 +100,12 @@ export interface WatchBranchDevicesMessage {
 export interface UnatchBranchDevicesMessage {
     name: typeof UNWATCH_BRANCH_DEVICES;
     data: string;
+}
+
+export interface DeviceCountMessage {
+    name: typeof DEVICE_COUNT;
+    data: {
+        branch: string;
+        count: number;
+    };
 }
