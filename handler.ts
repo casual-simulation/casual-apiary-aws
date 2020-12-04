@@ -114,6 +114,51 @@ export async function message(
     };
 }
 
+export async function webhook(
+    event: APIGatewayProxyEvent,
+    context: Context
+): Promise<APIGatewayProxyStructuredResultV2> {
+    const story = event.queryStringParameters['story'];
+    if (!story) {
+        console.log('[handler] No story query parameter was provided!');
+        return {
+            statusCode: 404,
+        };
+    }
+
+    const server = getCausalRepoServer(event);
+    const domain = event.requestContext.domainName;
+    const url = `https://${domain}${event.path}`;
+
+    let errored = false;
+    try {
+        const data = JSON.parse(event.body);
+
+        try {
+            const statusCode = await server.webhook(
+                story,
+                event.httpMethod,
+                url,
+                event.headers,
+                data
+            );
+            return {
+                statusCode,
+            };
+        } catch (err) {
+            errored = true;
+            throw err;
+        }
+    } catch (parseError) {
+        if (errored) {
+            throw parseError;
+        }
+        return {
+            statusCode: 400,
+        };
+    }
+}
+
 async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
     if (packet) {
         if (packet.type === 'login') {

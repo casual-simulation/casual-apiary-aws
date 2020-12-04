@@ -1,8 +1,10 @@
 import {
+    action,
     BotAction,
     botAdded,
     createBot,
     isBot,
+    ON_WEBHOOK_ACTION_NAME,
 } from '@casual-simulation/aux-common';
 import {
     applyEvents,
@@ -444,6 +446,70 @@ export class CausalRepoServer {
                 count: count,
             },
         });
+    }
+
+    /**
+     * Processes a webhook and returns the status code that should be returned.
+     * @param branch The branch that the webhook is for.
+     * @param method The HTTP method that was used for the webhook.
+     * @param url The URL that was requested.
+     * @param headers The headers that were included in the request.
+     * @param data The data included in the request.
+     */
+    async webhook(
+        branch: string,
+        method: string,
+        url: string,
+        headers: object,
+        data: object
+    ): Promise<number> {
+        const namespace = branchNamespace(branch);
+        const count = await this._atomStore.countAtoms(namespace);
+
+        if (count <= 0) {
+            return 404;
+        }
+
+        const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
+            namespace
+        );
+
+        if (connectedDevices.some((d) => !d)) {
+            return 99;
+        }
+
+        if (connectedDevices.length <= 0) {
+            return 503;
+        }
+
+        // TODO: Replace with system that selects target devices with better uniformity
+        // than Math.random().
+        const randomDeviceIndex = Math.min(
+            connectedDevices.length - 1,
+            Math.max(Math.floor(Math.random() * connectedDevices.length), 0)
+        );
+        const randomDevice = connectedDevices[randomDeviceIndex];
+
+        if (!randomDevice) {
+            return 503;
+        }
+
+        const a = action(ON_WEBHOOK_ACTION_NAME, null, null, {
+            method,
+            url,
+            headers,
+            data,
+        });
+
+        await this._messenger.sendMessage([randomDevice.connectionId], {
+            name: RECEIVE_EVENT,
+            data: {
+                branch: branch,
+                action: a as any,
+            },
+        });
+
+        return 200;
     }
 }
 

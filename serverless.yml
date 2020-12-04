@@ -120,6 +120,14 @@ functions:
         events:
             - websocket:
                   route: $default
+    webhook:
+        handler: handler.webhook
+        environment:
+            MESSAGES_BUCKET: '${self:custom.messagesBucket}'
+        events:
+            - http:
+                  path: webhook
+                  method: '*'
 resources:
     Resources:
         # A DynamoDB table that groups atoms by namespace

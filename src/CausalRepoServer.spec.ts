@@ -35,11 +35,15 @@ import {
     SESSION_ID_CLAIM,
     USERNAME_CLAIM,
 } from '@casual-simulation/causal-trees';
-import { setupStory } from '@casual-simulation/aux-common/bots/BotEvents';
+import {
+    action,
+    setupStory,
+} from '@casual-simulation/aux-common/bots/BotEvents';
 import { createBot } from '@casual-simulation/aux-common/bots/BotCalculations';
 import uuid from 'uuid/v4';
 import { bot, tag, value } from '@casual-simulation/aux-common/aux-format-2';
 import { DEVICE_COUNT } from './ApiaryMessenger';
+import { ON_WEBHOOK_ACTION_NAME } from '@casual-simulation/aux-common';
 // import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
 // import {
 //     hashPassword,
@@ -2842,6 +2846,124 @@ describe('CausalRepoServer', () => {
     //         ]);
     //     });
     // });
+
+    describe('webhook()', () => {
+        it('should return 200 if the webhook is handled', async () => {
+            const randomMock = (Math.random = jest.fn());
+            randomMock.mockReturnValueOnce(0);
+
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            const result = await server.webhook(
+                'testBranch',
+                'method',
+                'url',
+                {
+                    'Content-Type': 'application/json',
+                },
+                {
+                    value: 'anything',
+                }
+            );
+
+            expect(result).toEqual(200);
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [a1, a2],
+                    },
+                },
+                {
+                    name: RECEIVE_EVENT,
+                    data: {
+                        branch: 'testBranch',
+                        action: action(ON_WEBHOOK_ACTION_NAME, null, null, {
+                            method: 'method',
+                            url: 'url',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            data: {
+                                value: 'anything',
+                            },
+                        }),
+                    },
+                },
+            ]);
+        });
+
+        it('should return 404 if there are no atoms in the branch', async () => {
+            const randomMock = (Math.random = jest.fn());
+            randomMock.mockReturnValueOnce(0);
+
+            await server.connect(device1Info);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+            });
+
+            const result = await server.webhook(
+                'testBranch',
+                'method',
+                'url',
+                {
+                    'Content-Type': 'application/json',
+                },
+                {
+                    value: 'anything',
+                }
+            );
+
+            expect(result).toEqual(404);
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: 'testBranch',
+                        atoms: [],
+                    },
+                },
+            ]);
+        });
+
+        it('should return 503 if there are no connected devices', async () => {
+            const randomMock = (Math.random = jest.fn());
+            randomMock.mockReturnValueOnce(0);
+
+            await server.connect(device1Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+
+            await atomStore.saveAtoms(branchNamespace('testBranch'), [a1, a2]);
+
+            const result = await server.webhook(
+                'testBranch',
+                'method',
+                'url',
+                {
+                    'Content-Type': 'application/json',
+                },
+                {
+                    value: 'anything',
+                }
+            );
+
+            expect(result).toEqual(503);
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([]);
+        });
+    });
 
     describe('isEventForDevice()', () => {
         const usernameCases = [
