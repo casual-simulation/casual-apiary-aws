@@ -127,22 +127,7 @@ functions:
         events:
             - http:
                   path: webhook
-                  method: GET
-            - http:
-                  path: webhook
-                  method: POST
-            - http:
-                  path: webhook
-                  method: PUT
-            - http:
-                  path: webhook
-                  method: DELETE
-            - http:
-                  path: webhook
-                  method: UPDATE
-            - http:
-                  path: webhook
-                  method: PATCH
+                  method: ANY
 resources:
     Resources:
         # A DynamoDB table that groups atoms by namespace
