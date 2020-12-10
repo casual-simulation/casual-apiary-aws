@@ -11,6 +11,11 @@
 
 ## Running
 
-To run the load tests, simply `cd` into this directory and execute `k6 run name-of-test.js`.
+To run the load tests, simply `cd` into this directory and execute `k6 run -e URL="wss://url-to-connect.to" name-of-test.js`.
 
-For example to test connecting to the server run `k6 run connect-and-do-nothing.load-test.js`.
+For example to test connecting to the server run `k6 run -e URL="wss://url-to-connect.to" connect-and-do-nothing.load-test.js`.
+
+Additionally to avoid having to specify `-e URL="..."` all the time you can set the `URL` environment variable instead:
+
+-   `$ URL="wss://url-to-connect.to"`
+-   `$ export URL`

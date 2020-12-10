@@ -1,8 +1,9 @@
 import ws, { WebSocketError } from 'k6/ws';
 import { check } from 'k6';
+import { getUrl } from './helpers.js';
 
 export default function () {
-    const url = 'wss://39mds187f0.execute-api.us-east-1.amazonaws.com/dev';
+    const url = getUrl();
     const duration = 5000;
 
     const result = ws.connect(url, function connect(socket) {

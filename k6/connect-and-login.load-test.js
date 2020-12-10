@@ -1,9 +1,14 @@
 import ws, { WebSocketError } from 'k6/ws';
 import { check } from 'k6';
-import { formatMessage, generateUser, parseMessage } from './helpers.js';
+import {
+    formatMessage,
+    generateUser,
+    parseMessage,
+    getUrl,
+} from './helpers.js';
 
 export default function () {
-    const url = 'wss://39mds187f0.execute-api.us-east-1.amazonaws.com/dev';
+    const url = getUrl();
     const duration = 5000;
     let login = false;
 
