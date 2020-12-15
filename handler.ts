@@ -54,8 +54,6 @@ import { DEVICE_COUNT, Message } from './src/ApiaryMessenger';
 import { ApiaryConnectionStore } from './src/ApiaryConnectionStore';
 import { ApiaryAtomStore } from './src/ApiaryAtomStore';
 
-export const MAX_MESSAGE_SIZE = 128_000;
-
 export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
 export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
 export const NAMESPACE_CONNECTIONS_TABLE_NAME =

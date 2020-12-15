@@ -9,7 +9,7 @@ import {
 import { Packet } from './Events';
 import { getS3Client, uploadMessage } from './Utils';
 
-export const MAX_MESSAGE_SIZE = 128_000;
+export const MAX_MESSAGE_SIZE = 32_000;
 
 /**
  * Defines a class that implements the ApiaryMessenger interface for AWS API Gateway.
