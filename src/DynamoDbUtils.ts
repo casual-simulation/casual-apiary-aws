@@ -41,7 +41,12 @@ export async function processBatch(
     if (unprocessedRequests.length > 0) {
         if (tryCount < MAX_RETRY_COUNT) {
             await delay(DEFAULT_BACKOFF_MILLISECONDS * Math.pow(2, tryCount));
-            return this._processBatch(unprocessedRequests, tryCount + 1);
+            return processBatch(
+                client,
+                tableName,
+                unprocessedRequests,
+                tryCount + 1
+            );
         }
     }
 }
