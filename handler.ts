@@ -53,11 +53,20 @@ import { DynamoDbAtomStore } from './src/DynamoDbAtomStore';
 import { DEVICE_COUNT, Message } from './src/ApiaryMessenger';
 import { ApiaryConnectionStore } from './src/ApiaryConnectionStore';
 import { ApiaryAtomStore } from './src/ApiaryAtomStore';
+import { RedisClient, createClient as createRedisClient } from 'redis';
+import { RedisAtomStore } from './src/RedisAtomStore';
+import { RedisConnectionStore } from './src/RedisConnectionStore';
 
 export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
 export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
 export const NAMESPACE_CONNECTIONS_TABLE_NAME =
     process.env.NAMESPACE_CONNECTIONS_TABLE;
+export const REDIS_HOST = process.env.REDIS_HOST;
+export const REDIS_PORT = parseInt(process.env.REDIS_PORT);
+export const REDIS_PASS = process.env.REDIS_PASS;
+export const USE_REDIS = process.env.USE_REDIS === 'true';
+export const REDIS_NAMESPACE = process.env.REDIS_NAMESPACE;
+
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
 
 export async function connect(
@@ -261,22 +270,52 @@ function getCausalRepoServer(event: APIGatewayProxyEvent) {
 
 function getConnectionStore() {
     if (!_connectionStore) {
-        const documentClient = getDocumentClient();
-        _connectionStore = new DynamoDbConnectionStore(
-            CONNECTIONS_TABLE_NAME,
-            NAMESPACE_CONNECTIONS_TABLE_NAME,
-            documentClient
-        );
+        if (USE_REDIS) {
+            const redisClient = getRedisClient();
+            _connectionStore = new RedisConnectionStore(
+                REDIS_NAMESPACE,
+                redisClient
+            );
+        } else {
+            const documentClient = getDocumentClient();
+            _connectionStore = new DynamoDbConnectionStore(
+                CONNECTIONS_TABLE_NAME,
+                NAMESPACE_CONNECTIONS_TABLE_NAME,
+                documentClient
+            );
+        }
     }
     return _connectionStore;
 }
 
 function getAtomStore() {
     if (!_atomStore) {
-        const documentClient = getDocumentClient();
-        _atomStore = new DynamoDbAtomStore(ATOMS_TABLE_NAME, documentClient);
+        if (USE_REDIS) {
+            const redisClient = getRedisClient();
+            _atomStore = new RedisAtomStore(REDIS_NAMESPACE, redisClient);
+        } else {
+            const documentClient = getDocumentClient();
+            _atomStore = new DynamoDbAtomStore(
+                ATOMS_TABLE_NAME,
+                documentClient
+            );
+        }
     }
     return _atomStore;
+}
+
+let _redisClient: RedisClient;
+
+function getRedisClient() {
+    if (!_redisClient) {
+        _redisClient = createRedisClient({
+            host: REDIS_HOST,
+            port: REDIS_PORT,
+            password: REDIS_PASS,
+        });
+    }
+
+    return _redisClient;
 }
 
 function getMessenger(event: APIGatewayProxyEvent) {
