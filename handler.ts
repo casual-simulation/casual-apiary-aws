@@ -65,7 +65,14 @@ export const REDIS_HOST = process.env.REDIS_HOST;
 export const REDIS_PORT = parseInt(process.env.REDIS_PORT);
 export const REDIS_PASS = process.env.REDIS_PASS;
 export const USE_REDIS = process.env.USE_REDIS === 'true';
+export const REDIS_TLS = process.env.REDIS_TLS
+    ? process.env.REDIS_TLS === 'true'
+    : true;
 export const REDIS_NAMESPACE = process.env.REDIS_NAMESPACE;
+
+if (USE_REDIS) {
+    console.log('[handler] Using Redis.');
+}
 
 const DEFAULT_NAMESPACE = 'auxplayer.com@test-story';
 
@@ -312,6 +319,7 @@ function getRedisClient() {
             host: REDIS_HOST,
             port: REDIS_PORT,
             password: REDIS_PASS,
+            tls: REDIS_TLS,
         });
     }
 
