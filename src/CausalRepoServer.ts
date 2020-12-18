@@ -127,8 +127,14 @@ export class CausalRepoServer {
         const connection = await this._connectionStore.getConnection(
             connectionId
         );
+        if (!connection) {
+            throw new Error(
+                'Unable to watch_branch. The connection was not found!'
+            );
+        }
         await this._connectionStore.saveNamespaceConnection({
             ...connection,
+            connectionId: connectionId,
             namespace: namespace,
             temporary: event.temporary || false,
         });
@@ -397,8 +403,14 @@ export class CausalRepoServer {
         const connection = await this._connectionStore.getConnection(
             connectionId
         );
+        if (!connection) {
+            throw new Error(
+                'Unable to watch_branch_devices. The connection was not found!'
+            );
+        }
         await this._connectionStore.saveNamespaceConnection({
             ...connection,
+            connectionId: connectionId,
             namespace: namespace,
             temporary: true,
         });
