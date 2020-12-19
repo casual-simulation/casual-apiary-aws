@@ -49,6 +49,7 @@ provider:
         ATOMS_TABLE: '${self:custom.atomsTable}'
         CONNECTIONS_TABLE: '${self:custom.connectionsTable}'
         NAMESPACE_CONNECTIONS_TABLE: '${self:custom.namespaceConnectionsTable}'
+        WEBSOCKET_URL: '${env:WEBSOCKET_URL}'
     iamRoleStatements:
         - Effect: Allow
           Action:
