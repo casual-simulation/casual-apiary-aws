@@ -62,6 +62,8 @@ if (USE_REDIS) {
     console.log('[handler] Using Redis.');
 }
 
+const RECREATE_CLIENTS = USE_REDIS;
+
 export async function connect(
     event: APIGatewayProxyEvent,
     context: Context
@@ -82,12 +84,16 @@ export async function disconnect(
     console.log(
         `Got WebSocket disconnect: ${event.requestContext.connectionId}`
     );
-    const server = getCausalRepoServer(event);
-    await server.disconnect(event.requestContext.connectionId);
+    const [server, cleanup] = getCausalRepoServer(event);
+    try {
+        await server.disconnect(event.requestContext.connectionId);
 
-    return {
-        statusCode: 200,
-    };
+        return {
+            statusCode: 200,
+        };
+    } finally {
+        cleanup();
+    }
 }
 
 export async function message(
@@ -126,12 +132,11 @@ export async function webhook(
         };
     }
 
-    const server = getCausalRepoServer(event);
-    const domain = event.requestContext.domainName;
-    const url = `https://${domain}${event.path}`;
-
+    const [server, cleanup] = getCausalRepoServer(event);
     let errored = false;
     try {
+        const domain = event.requestContext.domainName;
+        const url = `https://${domain}${event.path}`;
         const data = JSON.parse(event.body);
 
         try {
@@ -156,6 +161,8 @@ export async function webhook(
         return {
             statusCode: 400,
         };
+    } finally {
+        cleanup();
     }
 }
 
@@ -180,11 +187,21 @@ export async function processUpload(
         message[1],
         uploadUrl,
     ];
+    const [server, cleanup] = getCausalRepoServer(event);
 
-    await getMessenger(event).sendRaw(
-        event.requestContext.connectionId,
-        JSON.stringify(response)
-    );
+    try {
+        if (!server.messenger.sendRaw) {
+            throw new Error(
+                'The messenger must implement sendRaw() to support AWS lambda!'
+            );
+        }
+        await server.messenger.sendRaw(
+            event.requestContext.connectionId,
+            JSON.stringify(response)
+        );
+    } finally {
+        cleanup();
+    }
 }
 
 export async function processDownload(
@@ -201,142 +218,123 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
         type: 'login_result',
     };
 
-    const server = getCausalRepoServer(event);
-    await server.connect({
-        connectionId: event.requestContext.connectionId,
-        sessionId: packet.sessionId,
-        username: packet.username,
-        token: packet.token,
-    });
+    const [server, cleanup] = getCausalRepoServer(event);
+    try {
+        await server.connect({
+            connectionId: event.requestContext.connectionId,
+            sessionId: packet.sessionId,
+            username: packet.username,
+            token: packet.token,
+        });
 
-    await getMessenger(event).sendPacket(
-        event.requestContext.connectionId,
-        result
-    );
+        if (!server.messenger.sendPacket) {
+            throw new Error(
+                'The messenger must implement sendPacket() to support AWS lambda!'
+            );
+        }
+        await server.messenger.sendPacket(
+            event.requestContext.connectionId,
+            result
+        );
+    } finally {
+        cleanup();
+    }
 }
 
 async function messagePacket(
     event: APIGatewayProxyEvent,
     packet: MessagePacket
 ) {
-    const server = getCausalRepoServer(event);
-    const message: Message = {
-        name: <any>packet.channel,
-        data: packet.data,
-    };
-    const connectionId = event.requestContext.connectionId;
-    if (message.name === WATCH_BRANCH) {
-        await server.watchBranch(connectionId, message.data);
-    } else if (message.name === ADD_ATOMS) {
-        await server.addAtoms(connectionId, message.data);
-    } else if (message.name === UNWATCH_BRANCH) {
-        await server.unwatchBranch(connectionId, message.data);
-    } else if (message.name === SEND_EVENT) {
-        await server.sendEvent(connectionId, message.data);
-    } else if (message.name == WATCH_BRANCH_DEVICES) {
-        await server.watchBranchDevices(connectionId, message.data);
-    } else if (message.name === UNWATCH_BRANCH_DEVICES) {
-        await server.unwatchBranchDevices(connectionId, message.data);
-    } else if (message.name === DEVICE_COUNT) {
-        await server.deviceCount(connectionId, <string>(<any>message.data));
+    const [server, cleanup] = getCausalRepoServer(event);
+    try {
+        const message: Message = {
+            name: <any>packet.channel,
+            data: packet.data,
+        };
+        const connectionId = event.requestContext.connectionId;
+        if (message.name === WATCH_BRANCH) {
+            await server.watchBranch(connectionId, message.data);
+        } else if (message.name === ADD_ATOMS) {
+            await server.addAtoms(connectionId, message.data);
+        } else if (message.name === UNWATCH_BRANCH) {
+            await server.unwatchBranch(connectionId, message.data);
+        } else if (message.name === SEND_EVENT) {
+            await server.sendEvent(connectionId, message.data);
+        } else if (message.name == WATCH_BRANCH_DEVICES) {
+            await server.watchBranchDevices(connectionId, message.data);
+        } else if (message.name === UNWATCH_BRANCH_DEVICES) {
+            await server.unwatchBranchDevices(connectionId, message.data);
+        } else if (message.name === DEVICE_COUNT) {
+            await server.deviceCount(connectionId, <string>(<any>message.data));
+        }
+    } finally {
+        cleanup();
     }
 }
 
-let _connectionStore: ApiaryConnectionStore;
-let _atomStore: ApiaryAtomStore;
-let _messenger: ApiGatewayMessenger;
-let _server: CausalRepoServer;
+let _server: readonly [CausalRepoServer, () => void];
 
 function getCausalRepoServer(event: APIGatewayProxyEvent) {
-    if (!_server) {
-        const atomStore = getAtomStore();
-        const connectionStore = getConnectionStore();
-
-        _server = new CausalRepoServer(
-            connectionStore,
-            atomStore,
-            getMessenger(event)
-        );
+    if (!_server || RECREATE_CLIENTS) {
+        _server = createCausalRepoServer(event);
     }
     return _server;
 }
 
-function getConnectionStore() {
-    if (!_connectionStore) {
-        if (USE_REDIS) {
-            const redisClient = getRedisClient();
-            _connectionStore = new RedisConnectionStore(
-                REDIS_NAMESPACE,
-                redisClient
-            );
-        } else {
-            const documentClient = getDocumentClient();
-            _connectionStore = new DynamoDbConnectionStore(
-                CONNECTIONS_TABLE_NAME,
-                NAMESPACE_CONNECTIONS_TABLE_NAME,
-                documentClient
-            );
-        }
-    }
-    return _connectionStore;
-}
-
-function getAtomStore() {
-    if (!_atomStore) {
-        if (USE_REDIS) {
-            const redisClient = getRedisClient();
-            _atomStore = new RedisAtomStore(REDIS_NAMESPACE, redisClient);
-        } else {
-            const documentClient = getDocumentClient();
-            _atomStore = new DynamoDbAtomStore(
-                ATOMS_TABLE_NAME,
-                documentClient
-            );
-        }
-    }
-    return _atomStore;
-}
-
-let _redisClient: RedisClient;
-
-const REDIS_CONNECTION_TIMEOUT = 1000 * 60 * 60; // 1 hour
-
-function getRedisClient() {
-    if (!_redisClient) {
-        _redisClient = createRedisClient({
-            host: REDIS_HOST,
-            port: REDIS_PORT,
-            password: REDIS_PASS,
-            tls: REDIS_TLS,
-
-            retry_strategy: function (options) {
-                if (options.error && options.error.code === 'ECONNREFUSED') {
-                    // End reconnecting on a specific error and flush all commands with
-                    // a individual error
-                    return new Error('The server refused the connection');
-                }
-                if (options.total_retry_time > REDIS_CONNECTION_TIMEOUT) {
-                    // End reconnecting after a specific timeout and flush all commands
-                    // with a individual error
-                    return new Error('Retry time exhausted');
-                }
-                // reconnect after min(100ms per attempt, 3 seconds)
-                return Math.min(options.attempt * 100, 3000);
-            },
-        });
-    }
-
-    return _redisClient;
-}
-
-function getMessenger(event: APIGatewayProxyEvent) {
-    if (!_messenger) {
-        _messenger = new ApiGatewayMessenger(
-            callbackUrl(event),
-            getConnectionStore()
+function createCausalRepoServer(event: APIGatewayProxyEvent) {
+    if (USE_REDIS) {
+        const [redisClient, cleanup] = createRedis();
+        const connectionStore = new RedisConnectionStore(
+            REDIS_NAMESPACE,
+            redisClient
         );
+
+        return [
+            new CausalRepoServer(
+                connectionStore,
+                new RedisAtomStore(REDIS_NAMESPACE, redisClient),
+                new ApiGatewayMessenger(callbackUrl(event), connectionStore)
+            ),
+            () => {
+                cleanup();
+            },
+        ] as const;
+    } else {
+        const documentClient = getDocumentClient();
+        const connectionStore = new DynamoDbConnectionStore(
+            CONNECTIONS_TABLE_NAME,
+            NAMESPACE_CONNECTIONS_TABLE_NAME,
+            documentClient
+        );
+        return [
+            new CausalRepoServer(
+                connectionStore,
+                new DynamoDbAtomStore(ATOMS_TABLE_NAME, documentClient),
+                new ApiGatewayMessenger(callbackUrl(event), connectionStore)
+            ),
+            () => {},
+        ] as const;
     }
-    return _messenger;
+}
+
+function createRedis() {
+    const client = createRedisClient({
+        host: REDIS_HOST,
+        port: REDIS_PORT,
+        password: REDIS_PASS,
+        tls: REDIS_TLS,
+
+        retry_strategy: function (options) {
+            if (options.error && options.error.code === 'ECONNREFUSED') {
+                // End reconnecting on a specific error and flush all commands with
+                // a individual error
+                return new Error('The server refused the connection');
+            }
+            // reconnect after min(100ms per attempt, 3 seconds)
+            return Math.min(options.attempt * 100, 3000);
+        },
+    });
+    return [client, () => client.quit()] as const;
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {

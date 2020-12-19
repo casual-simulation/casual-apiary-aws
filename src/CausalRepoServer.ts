@@ -54,6 +54,10 @@ export class CausalRepoServer {
      */
     defaultDeviceSelector: DeviceSelector;
 
+    get messenger() {
+        return this._messenger;
+    }
+
     constructor(
         connectionStore: ApiaryConnectionStore,
         atomStore: ApiaryAtomStore,
