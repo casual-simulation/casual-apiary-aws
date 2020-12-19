@@ -313,6 +313,8 @@ function getAtomStore() {
 
 let _redisClient: RedisClient;
 
+const REDIS_CONNECTION_TIMEOUT = 1000 * 60 * 60; // 1 hour
+
 function getRedisClient() {
     if (!_redisClient) {
         _redisClient = createRedisClient({
@@ -320,6 +322,21 @@ function getRedisClient() {
             port: REDIS_PORT,
             password: REDIS_PASS,
             tls: REDIS_TLS,
+
+            retry_strategy: function (options) {
+                if (options.error && options.error.code === 'ECONNREFUSED') {
+                    // End reconnecting on a specific error and flush all commands with
+                    // a individual error
+                    return new Error('The server refused the connection');
+                }
+                if (options.total_retry_time > REDIS_CONNECTION_TIMEOUT) {
+                    // End reconnecting after a specific timeout and flush all commands
+                    // with a individual error
+                    return new Error('Retry time exhausted');
+                }
+                // reconnect after min(100ms per attempt, 3 seconds)
+                return Math.min(options.attempt * 100, 3000);
+            },
         });
     }
 
