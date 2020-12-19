@@ -334,7 +334,7 @@ function createRedis() {
             return Math.min(options.attempt * 100, 3000);
         },
     });
-    return [client, () => client.quit()] as const;
+    return [client, () => client.end(true)] as const;
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {
