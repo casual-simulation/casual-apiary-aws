@@ -66,7 +66,7 @@ export async function disconnect(
     console.log(
         `Got WebSocket disconnect: ${event.requestContext.connectionId}`
     );
-    const server = getCausalRepoServer(event, false);
+    const server = getCausalRepoServer(event);
     await server.disconnect(event.requestContext.connectionId);
 
     return {
@@ -84,12 +84,12 @@ export async function message(
         if (message[0] === AwsMessageTypes.Message) {
             const packet = parseMessage<Packet>(message[1]);
             if (packet) {
-                await processPacket(event, packet, false);
+                await processPacket(event, packet);
             }
         } else if (message[0] === AwsMessageTypes.UploadRequest) {
-            await processUpload(event, message, false);
+            await processUpload(event, message);
         } else if (message[0] === AwsMessageTypes.DownloadRequest) {
-            await processDownload(event, message, false);
+            await processDownload(event, message);
         }
     }
 
@@ -110,7 +110,7 @@ export async function webhook(
         };
     }
 
-    const server = getCausalRepoServer(event, true);
+    const server = getCausalRepoServer(event);
     const domain = event.requestContext.domainName;
     const url = `https://${domain}${event.path}`;
 
@@ -143,24 +143,19 @@ export async function webhook(
     }
 }
 
-async function processPacket(
-    event: APIGatewayProxyEvent,
-    packet: Packet,
-    isHttp: boolean
-) {
+async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
     if (packet) {
         if (packet.type === 'login') {
-            await login(event, packet, isHttp);
+            await login(event, packet);
         } else if (packet.type === 'message') {
-            await messagePacket(event, packet, isHttp);
+            await messagePacket(event, packet);
         }
     }
 }
 
 export async function processUpload(
     event: APIGatewayProxyEvent,
-    message: AwsUploadRequest,
-    isHttp: boolean
+    message: AwsUploadRequest
 ) {
     const uploadUrl = await getMessageUploadUrl();
 
@@ -170,7 +165,7 @@ export async function processUpload(
         uploadUrl,
     ];
 
-    await getMessenger(event, isHttp).sendRaw(
+    await getMessenger(event).sendRaw(
         event.requestContext.connectionId,
         JSON.stringify(response)
     );
@@ -178,24 +173,19 @@ export async function processUpload(
 
 export async function processDownload(
     event: APIGatewayProxyEvent,
-    message: AwsDownloadRequest,
-    isHttp: boolean
+    message: AwsDownloadRequest
 ) {
     const data = await downloadObject(message[1]);
     const packet = parseMessage<Packet>(data);
-    await processPacket(event, packet, isHttp);
+    await processPacket(event, packet);
 }
 
-async function login(
-    event: APIGatewayProxyEvent,
-    packet: LoginPacket,
-    isHttp: boolean
-) {
+async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
     const result: LoginResultPacket = {
         type: 'login_result',
     };
 
-    const server = getCausalRepoServer(event, isHttp);
+    const server = getCausalRepoServer(event);
     await server.connect({
         connectionId: event.requestContext.connectionId,
         sessionId: packet.sessionId,
@@ -203,7 +193,7 @@ async function login(
         token: packet.token,
     });
 
-    await getMessenger(event, isHttp).sendPacket(
+    await getMessenger(event).sendPacket(
         event.requestContext.connectionId,
         result
     );
@@ -211,10 +201,9 @@ async function login(
 
 async function messagePacket(
     event: APIGatewayProxyEvent,
-    packet: MessagePacket,
-    isHttp: boolean
+    packet: MessagePacket
 ) {
-    const server = getCausalRepoServer(event, isHttp);
+    const server = getCausalRepoServer(event);
     const message: Message = {
         name: <any>packet.channel,
         data: packet.data,
@@ -242,15 +231,15 @@ let _atomStore: ApiaryAtomStore;
 let _messenger: ApiGatewayMessenger;
 let _server: CausalRepoServer;
 
-function getCausalRepoServer(event: APIGatewayProxyEvent, isHttp: boolean) {
-    if (!_server || isHttp) {
+function getCausalRepoServer(event: APIGatewayProxyEvent) {
+    if (!_server) {
         const atomStore = getAtomStore();
         const connectionStore = getConnectionStore();
 
         _server = new CausalRepoServer(
             connectionStore,
             atomStore,
-            getMessenger(event, isHttp)
+            getMessenger(event)
         );
     }
     return _server;
@@ -276,28 +265,22 @@ function getAtomStore() {
     return _atomStore;
 }
 
-function getMessenger(event: APIGatewayProxyEvent, isHttp: boolean) {
-    if (!_messenger || isHttp) {
+function getMessenger(event: APIGatewayProxyEvent) {
+    if (!_messenger) {
         _messenger = new ApiGatewayMessenger(
-            callbackUrl(event, isHttp),
+            callbackUrl(event),
             getConnectionStore()
         );
     }
     return _messenger;
 }
 
-function callbackUrl(event: APIGatewayProxyEvent, isHttp: boolean): string {
+function callbackUrl(event: APIGatewayProxyEvent): string {
     if (process.env.IS_OFFLINE) {
         return 'http://localhost:4001';
     }
 
-    if (isHttp) {
-        return process.env.WEBSOCKET_URL || 'https://websocket.casualos.com';
-    }
-
-    const domain = event.requestContext.domainName;
-    const path = event.requestContext.stage;
-    return `https://${domain}/${path}`;
+    return process.env.WEBSOCKET_URL || 'https://websocket.casualos.com';
 }
 
 function handleEvents(
