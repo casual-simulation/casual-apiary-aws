@@ -45,7 +45,6 @@ provider:
         shouldStartNameWithService: true
         minimumCompressionSize: 1024
     environment:
-        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
         REDIS_HOST: '${env:REDIS_HOST}'
         REDIS_PORT: '${env:REDIS_PORT}'
         REDIS_PASS: '${env:REDIS_PASS}'
