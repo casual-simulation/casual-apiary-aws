@@ -1,9 +1,18 @@
-import { Atom } from '@casual-simulation/causal-trees';
+import { Atom, atomIdToString } from '@casual-simulation/causal-trees';
 import { ApiaryAtomStore } from './ApiaryAtomStore';
 import { sortBy } from 'lodash';
 import { RedisClient } from 'redis';
 import { promisify } from 'util';
 import { spanify } from './Utils';
+
+/**
+ * The size, in bytes, of the maximum request that should be made with redis.
+ * Lambda Store has a max request size of 400k but we have a 2k buffer to be safe.
+ */
+const DEFAULT_BATCH_MAX_SIZE = 398_000;
+const MAX_REDIS_BATCH_SIZE = parseInt(
+    process.env.MAX_REDIS_BATCH_SIZE || DEFAULT_BATCH_MAX_SIZE.toString()
+);
 
 /**
  * Defines a class that specifies a Redis implementation of an ApiaryAtomStore.
@@ -48,15 +57,41 @@ export class RedisAtomStore implements ApiaryAtomStore {
         if (atoms.length <= 0) {
             return;
         }
-        let fieldsAndValues = [branchKey(this._globalNamespace, namespace)] as [
-            string,
-            ...string[]
-        ];
+        const key = branchKey(this._globalNamespace, namespace);
+        let fieldsAndValues = [key] as [string, ...string[]];
+
+        let length = 0;
 
         for (let atom of atoms) {
-            fieldsAndValues.push(atom.hash, JSON.stringify(atom));
+            const json = JSON.stringify(atom);
+            const fieldLength =
+                Buffer.byteLength(atom.hash, 'utf8') +
+                Buffer.byteLength(json, 'utf8');
+
+            if (fieldLength >= MAX_REDIS_BATCH_SIZE) {
+                throw new Error(
+                    `Unable to upload atom (${atomIdToString(
+                        atom.id
+                    )}) because it exceeds the configured maximum redis request size.`
+                );
+            }
+
+            length += fieldLength;
+
+            if (length >= MAX_REDIS_BATCH_SIZE) {
+                if (fieldsAndValues.length > 1) {
+                    await this.hset(fieldsAndValues);
+                    fieldsAndValues = [key];
+                    length = fieldLength;
+                }
+            }
+
+            fieldsAndValues.push(atom.hash, json);
         }
-        await this.hset(fieldsAndValues);
+
+        if (fieldsAndValues.length > 1) {
+            await this.hset(fieldsAndValues);
+        }
     }
 
     async loadAtoms(namespace: string): Promise<Atom<any>[]> {
@@ -75,12 +110,35 @@ export class RedisAtomStore implements ApiaryAtomStore {
     }
 
     async deleteAtoms(namespace: string, atomHashes: string[]): Promise<void> {
-        const args = [
-            branchKey(this._globalNamespace, namespace),
-            ...atomHashes,
-        ] as [string, ...string[]];
+        const key = branchKey(this._globalNamespace, namespace);
+        let args = [key] as [string, ...string[]];
 
-        await this.hdel(args);
+        let length = 0;
+        for (let hash of atomHashes) {
+            const fieldLength = Buffer.byteLength(hash, 'utf8');
+
+            if (fieldLength >= MAX_REDIS_BATCH_SIZE) {
+                throw new Error(
+                    `Unable to upload hash because it exceeds the configured maximum redis request size.`
+                );
+            }
+
+            length += fieldLength;
+
+            if (length >= MAX_REDIS_BATCH_SIZE) {
+                if (args.length > 1) {
+                    await this.hdel(args);
+                    args = [key];
+                    length = fieldLength;
+                }
+            }
+
+            args.push(hash);
+        }
+
+        if (args.length > 1) {
+            await this.hdel(args);
+        }
     }
 
     async clearNamespace(namespace: string): Promise<void> {
