@@ -372,7 +372,7 @@ function createRedis() {
         client,
         () => {
             try {
-                client.end(true);
+                client.quit();
             } catch (err) {
                 console.error(err);
             }
