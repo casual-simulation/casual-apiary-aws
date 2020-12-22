@@ -5,6 +5,7 @@ import {
     DeviceConnection,
     DeviceNamespaceConnection,
 } from './ApiaryConnectionStore';
+import { spanify } from './Utils';
 
 /**
  * Defines a class that specifies a Redis implementation of an ApiaryAtomStore.
@@ -25,13 +26,34 @@ export class RedisConnectionStore implements ApiaryConnectionStore {
         this._globalNamespace = globalNamespace;
         this._redis = client;
 
-        this.del = promisify(this._redis.del).bind(this._redis);
-        this.hset = promisify(this._redis.hset).bind(this._redis);
-        this.hdel = promisify(this._redis.hdel).bind(this._redis);
-        this.hvals = promisify(this._redis.hvals).bind(this._redis);
-        this.hkeys = promisify(this._redis.hkeys).bind(this._redis);
-        this.hlen = promisify(this._redis.hlen).bind(this._redis);
-        this.hget = promisify(this._redis.hget).bind(this._redis);
+        this.del = spanify(
+            'Redis DEL',
+            promisify(this._redis.del).bind(this._redis)
+        );
+        this.hset = spanify(
+            'Redis HSET',
+            promisify(this._redis.hset).bind(this._redis)
+        );
+        this.hdel = spanify(
+            'Redis HDEL',
+            promisify(this._redis.hdel).bind(this._redis)
+        );
+        this.hvals = spanify(
+            'Redis HVALS',
+            promisify(this._redis.hvals).bind(this._redis)
+        );
+        this.hkeys = spanify(
+            'Redis HKEYS',
+            promisify(this._redis.hkeys).bind(this._redis)
+        );
+        this.hlen = spanify(
+            'Redis HLEN',
+            promisify(this._redis.hlen).bind(this._redis)
+        );
+        this.hget = spanify(
+            'Redis HGET',
+            promisify(this._redis.hget).bind(this._redis)
+        );
     }
 
     // /{global}/connections

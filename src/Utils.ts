@@ -121,3 +121,22 @@ export function parseMessage<T>(data: unknown): T {
         return null;
     }
 }
+
+let span: any;
+
+export function setSpan(func: any) {
+    span = func;
+}
+
+export function spanify<T extends Function>(label: string, func: T): T {
+    // TODO: Fix
+    // if(span) {
+    //     return <T><any>(function(...args: any[]) {
+    //         return span(label, async () => {
+    //             return func(...args);
+    //         });
+    //     });
+    // } else {
+    return func;
+    // }
+}

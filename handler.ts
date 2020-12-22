@@ -26,6 +26,7 @@ import {
     getDocumentClient,
     getMessageUploadUrl,
     parseMessage,
+    setSpan,
 } from './src/Utils';
 import {
     AwsDownloadRequest,
@@ -66,8 +67,12 @@ const RECREATE_CLIENTS = USE_REDIS;
 
 export async function connect(
     event: APIGatewayProxyEvent,
-    context: Context
+    context: any
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    if (context.serverlessSdk) {
+        setSpan(context.serverlessSdk.span);
+    }
+
     console.log(
         `Got WebSocket connection: ${event.requestContext.connectionId}`
     );
@@ -79,8 +84,12 @@ export async function connect(
 
 export async function disconnect(
     event: APIGatewayProxyEvent,
-    context: Context
+    context: any
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    if (context.serverlessSdk) {
+        setSpan(context.serverlessSdk.span);
+    }
+
     console.log(
         `Got WebSocket disconnect: ${event.requestContext.connectionId}`
     );
@@ -98,19 +107,26 @@ export async function disconnect(
 
 export async function message(
     event: APIGatewayProxyEvent,
-    context: Context
+    context: any
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    if (context.serverlessSdk) {
+        setSpan(context.serverlessSdk.span);
+    }
+
     const message = parseMessage<AwsMessage>(event.body);
 
     if (message) {
         if (message[0] === AwsMessageTypes.Message) {
             const packet = parseMessage<Packet>(message[1]);
             if (packet) {
+                console.log('[handler] Got packet!');
                 await processPacket(event, packet);
             }
         } else if (message[0] === AwsMessageTypes.UploadRequest) {
+            console.log('[handler] Processing upload request!');
             await processUpload(event, message);
         } else if (message[0] === AwsMessageTypes.DownloadRequest) {
+            console.log('[handler] Processing download request!');
             await processDownload(event, message);
         }
     }
@@ -122,8 +138,12 @@ export async function message(
 
 export async function webhook(
     event: APIGatewayProxyEvent,
-    context: Context
+    context: any
 ): Promise<APIGatewayProxyStructuredResultV2> {
+    if (context.serverlessSdk) {
+        setSpan(context.serverlessSdk.span);
+    }
+
     const story = event.queryStringParameters['story'];
     if (!story) {
         console.log('[handler] No story query parameter was provided!');
@@ -218,6 +238,8 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
         type: 'login_result',
     };
 
+    console.log('[handler] Logging in...');
+
     const [server, cleanup] = getCausalRepoServer(event);
     try {
         await server.connect({
@@ -226,6 +248,8 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
             username: packet.username,
             token: packet.token,
         });
+
+        console.log('[handler] Logged in!');
 
         if (!server.messenger.sendPacket) {
             throw new Error(
@@ -237,6 +261,7 @@ async function login(event: APIGatewayProxyEvent, packet: LoginPacket) {
             result
         );
     } finally {
+        console.log('[handler] Cleaning up!');
         cleanup();
     }
 }
@@ -283,13 +308,14 @@ function getCausalRepoServer(event: APIGatewayProxyEvent) {
 
 function createCausalRepoServer(event: APIGatewayProxyEvent) {
     if (USE_REDIS) {
+        console.log('[handler] Creating redis server!');
         const [redisClient, cleanup] = createRedis();
         const connectionStore = new RedisConnectionStore(
             REDIS_NAMESPACE,
             redisClient
         );
 
-        return [
+        const result = [
             new CausalRepoServer(
                 connectionStore,
                 new RedisAtomStore(REDIS_NAMESPACE, redisClient),
@@ -299,14 +325,19 @@ function createCausalRepoServer(event: APIGatewayProxyEvent) {
                 cleanup();
             },
         ] as const;
+
+        console.log('[handler] Server created!');
+
+        return result;
     } else {
+        console.log('[handler] Creating DynamoDB server!');
         const documentClient = getDocumentClient();
         const connectionStore = new DynamoDbConnectionStore(
             CONNECTIONS_TABLE_NAME,
             NAMESPACE_CONNECTIONS_TABLE_NAME,
             documentClient
         );
-        return [
+        const result = [
             new CausalRepoServer(
                 connectionStore,
                 new DynamoDbAtomStore(ATOMS_TABLE_NAME, documentClient),
@@ -314,6 +345,9 @@ function createCausalRepoServer(event: APIGatewayProxyEvent) {
             ),
             () => {},
         ] as const;
+
+        console.log('[handler] Server created!');
+        return result;
     }
 }
 
@@ -334,7 +368,16 @@ function createRedis() {
             return Math.min(options.attempt * 100, 3000);
         },
     });
-    return [client, () => client.end(true)] as const;
+    return [
+        client,
+        () => {
+            try {
+                client.end(true);
+            } catch (err) {
+                console.error(err);
+            }
+        },
+    ] as const;
 }
 
 function callbackUrl(event: APIGatewayProxyEvent): string {
