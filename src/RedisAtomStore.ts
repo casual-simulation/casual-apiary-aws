@@ -25,6 +25,12 @@ export class RedisAtomStore implements ApiaryAtomStore {
     private hdel: (args: [string, ...string[]]) => Promise<void>;
     private hlen: (key: string) => Promise<number>;
     private hvals: (key: string) => Promise<string[]>;
+    private hscan: (
+        key: string,
+        cursor: string,
+        countHint: 'COUNT',
+        count: string
+    ) => Promise<[string, string[]]>;
     private del: (key: string) => Promise<void>;
 
     constructor(globalNamespace: string, client: RedisClient) {
@@ -50,6 +56,10 @@ export class RedisAtomStore implements ApiaryAtomStore {
         this.hlen = spanify(
             'Redis HLEN',
             promisify(this._redis.hlen).bind(this._redis)
+        );
+        this.hscan = spanify(
+            'Redis HSCAN',
+            promisify(this._redis.hscan).bind(this._redis)
         );
     }
 
@@ -95,9 +105,39 @@ export class RedisAtomStore implements ApiaryAtomStore {
     }
 
     async loadAtoms(namespace: string): Promise<Atom<any>[]> {
-        const values = await this.hvals(
-            branchKey(this._globalNamespace, namespace)
-        );
+        const key = branchKey(this._globalNamespace, namespace);
+        let values: string[];
+        try {
+            // Try getting the values normally first
+            values = await this.hvals(key);
+        } catch (err) {
+            // limit has been hit, now we need to scan the hash keys and values
+            let cursor = '0';
+            values = [];
+
+            do {
+                try {
+                    // HSCAN returns a flat list containing both the keys and values
+                    const [next, keysAndValues] = await this.hscan(
+                        key,
+                        cursor,
+                        'COUNT',
+                        '100'
+                    );
+
+                    for (let i = 0; i < keysAndValues.length; i += 2) {
+                        let key = keysAndValues[i];
+                        let value = keysAndValues[i + 1];
+
+                        values.push(value);
+                    }
+                    cursor = next;
+                } catch (err) {
+                    throw new Error('Unable to load atoms: ' + err.toString());
+                }
+            } while (cursor && cursor !== '0');
+        }
+
         const atoms = values.map((val) => JSON.parse(val)) as Atom<any>[];
         return sortBy(atoms, (a) => a.id.timestamp);
     }
