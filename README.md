@@ -40,7 +40,7 @@ $ yarn dynamodb:install
 4. Start running.
 
 ```bash
-$ serverless offline start
+$ yarn start
 ```
 
 ## Deployment
@@ -54,5 +54,5 @@ $ aws configure --profile casualsimulation
 2. Deploy to AWS
 
 ```bash
-$ serverless deploy
+$ serverless deploy --stage mystage
 ```

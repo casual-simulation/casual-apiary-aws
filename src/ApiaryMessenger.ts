@@ -17,6 +17,7 @@ import {
     WATCH_BRANCH,
     WATCH_BRANCH_DEVICES,
 } from '@casual-simulation/causal-trees';
+import { Packet } from './Events';
 
 /**
  * The name of the event which gets the number of devices.
@@ -38,6 +39,9 @@ export interface ApiaryMessenger {
         data: Message,
         excludeConnection?: string
     ): Promise<void>;
+
+    sendPacket?(connectionId: string, packet: Packet): Promise<void>;
+    sendRaw?(connectionId: string, data: string): Promise<void>;
 }
 
 export type Message =
