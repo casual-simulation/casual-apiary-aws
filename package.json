@@ -13,7 +13,7 @@
         "deploy:dev": "serverless deploy --stage dev",
         "deploy:casualos-dev": "serverless deploy --stage casualos-dev",
         "deploy:boormanlabs": "serverless deploy --stage boormanlabs",
-        "deploy:casualos": "serverless deploy --stage casualos"
+        "deploy:casualos": "serverless deploy --stage casualos-redis"
     },
     "husky": {
         "hooks": {
