@@ -143,8 +143,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true, // should include whether this event includes the initial data.
                     },
-                    initial: true, // should include whether this event includes the initial data.
                 },
             ]);
         });
@@ -162,8 +162,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'doesNotExist',
                         atoms: [],
+                        initial: true, // should include whether this event includes the initial data.
                     },
-                    initial: true, // should include whether this event includes the initial data.
                 },
             ]);
         });
@@ -191,8 +191,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
             expect(messenger.getMessages(device2Info.connectionId)).toEqual([
@@ -201,8 +201,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
         });
@@ -232,16 +232,16 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
         });
@@ -269,8 +269,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 branch: 'testBranch',
                                 atoms: [a1, a2],
+                                initial: true,
                             },
-                            initial: true,
                         },
                     ]
                 );
@@ -305,8 +305,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 branch: 'testBranch',
                                 atoms: [],
+                                initial: true,
                             },
-                            initial: true,
                         },
                         {
                             name: ADD_ATOMS,
@@ -337,8 +337,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 branch: 'testBranch',
                                 atoms: [a1, a2],
+                                initial: true,
                             },
-                            initial: true,
                         },
                     ]
                 );
@@ -416,8 +416,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 branch: 'testBranch',
                                 atoms: [],
+                                initial: true,
                             },
-                            initial: true,
                         },
                         {
                             name: ATOMS_RECEIVED,
@@ -457,16 +457,16 @@ describe('CausalRepoServer', () => {
                             data: {
                                 branch: 'persistentBranch',
                                 atoms: [],
+                                initial: true,
                             },
-                            initial: true,
                         },
                         {
                             name: ADD_ATOMS,
                             data: {
                                 branch: 'tempBranch',
                                 atoms: [],
+                                initial: true,
                             },
-                            initial: true,
                         },
                         {
                             name: ATOMS_RECEIVED,
@@ -631,8 +631,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
@@ -725,8 +725,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2, a3],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
         });
@@ -825,8 +825,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
@@ -843,8 +843,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
@@ -879,8 +879,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
 
                 // Server should send a atoms received event
@@ -958,8 +958,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
         });
@@ -1065,8 +1065,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2, a3],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
@@ -1083,8 +1083,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2, a3],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: ADD_ATOMS,
@@ -1124,8 +1124,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2, a3],
+                        initial: true,
                     },
-                    initial: true,
                 },
 
                 // Server should send a atoms received event
@@ -1168,8 +1168,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2, a3],
+                        initial: true,
                     },
-                    initial: true,
                 },
 
                 // Server should send a atoms received event
@@ -1575,8 +1575,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
             expect(messenger.getMessages(device3Info.connectionId)).toEqual([
@@ -1585,8 +1585,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1629,8 +1629,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
             expect(messenger.getMessages(device3Info.connectionId)).toEqual([
@@ -1639,8 +1639,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1685,8 +1685,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1705,8 +1705,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1753,8 +1753,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
 
@@ -1764,8 +1764,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1813,8 +1813,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
             expect(messenger.getMessages(device3Info.connectionId)).toEqual([
@@ -1823,8 +1823,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -1870,8 +1870,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
             expect(messenger.getMessages(device3Info.connectionId)).toEqual([
@@ -1880,8 +1880,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -2014,8 +2014,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 atoms: [],
                                 branch: 'testBranch',
+                                initial: true,
                             },
-                            initial: true,
                         },
                     ]
                 );
@@ -2026,8 +2026,8 @@ describe('CausalRepoServer', () => {
                             data: {
                                 atoms: [],
                                 branch: 'testBranch',
+                                initial: true,
                             },
-                            initial: true,
                         },
                     ]
                 );
@@ -2918,8 +2918,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [a1, a2],
+                        initial: true,
                     },
-                    initial: true,
                 },
                 {
                     name: RECEIVE_EVENT,
@@ -2969,8 +2969,8 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         atoms: [],
+                        initial: true,
                     },
-                    initial: true,
                 },
             ]);
         });

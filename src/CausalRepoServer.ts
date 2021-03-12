@@ -168,8 +168,8 @@ export class CausalRepoServer {
                 data: {
                     branch: event.branch,
                     atoms: atoms,
+                    initial: true,
                 },
-                initial: true,
             }),
         ];
         await Promise.all(promises);

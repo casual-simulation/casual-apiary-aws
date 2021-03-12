@@ -64,14 +64,14 @@ export interface WatchBranchMessage {
 
 export interface AddAtomsMessage {
     name: typeof ADD_ATOMS;
-    data: AddAtomsEvent;
-
-    /**
-     * Whether this message should be treated as the first message
-     * after a watch_branch event.
-     * This flag MUST be included on the first message as large apiary messages may appear out of order.
-     */
-    initial?: boolean;
+    data: AddAtomsEvent & {
+        /**
+         * Whether this message should be treated as the first message
+         * after a watch_branch event.
+         * This flag MUST be included on the first message as large apiary messages may appear out of order.
+         */
+        initial?: boolean;
+    };
 }
 
 export interface AtomsReceivedMessage {
