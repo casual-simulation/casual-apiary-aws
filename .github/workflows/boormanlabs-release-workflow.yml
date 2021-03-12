@@ -13,11 +13,13 @@ jobs:
             - uses: actions/checkout@v1
 
             - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v1
-              with:
-                  aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                  aws-region: us-east-1
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              run: |
+                  aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile casualos
+                  aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile casualos
+                  aws configure set region us-east-1 --profile casualos
 
             - name: Use Node.js
               uses: actions/setup-node@v1
