@@ -12,7 +12,8 @@
         "dynamodb:install": "serverless dynamodb install --stage dev",
         "deploy:dev": "serverless deploy --stage dev",
         "deploy:casualos-dev": "serverless deploy --stage casualos-dev",
-        "deploy:boormanlabs": "serverless deploy --stage boormanlabs"
+        "deploy:boormanlabs": "serverless deploy --stage boormanlabs",
+        "deploy:casualos": "serverless deploy --stage casualos"
     },
     "husky": {
         "hooks": {
