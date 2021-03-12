@@ -45,6 +45,15 @@ $ yarn start
 
 ## Deployment
 
+### GitHub Actions
+
+To deploy using GitHub Actions, simply create a tag on the commit you want to deploy.
+
+-   To deploy to the `boormanlabs` stage, create and push a tag that starts with `boormanlabs/` (like `boormanlabs/v2.0`).
+-   To deploy to the `casualos-redis` stage, create and push a tag that starts with `casualos/` (like `casualos/v1.0`).
+
+### Manual
+
 1. Make sure you have the [AWS CLI](https://aws.amazon.com/cli/) and [the `casualsimulation` profile is configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html#cli-configure-quickstart-profiles):
 
 ```bash
