@@ -38,7 +38,7 @@ export class RedisUpdatesStore implements UpdatesStore {
     async getUpdates(branch: string): Promise<string[]> {
         const key = branchKey(this._globalNamespace, branch);
         const updates = await this.lrange(key, 0, -1);
-        return updates;
+        return updates ?? [];
     }
 
     async addUpdates(branch: string, updates: string[]): Promise<void> {
