@@ -47,6 +47,7 @@ import { RedisClient, createClient as createRedisClient } from 'redis';
 import { RedisAtomStore } from './src/RedisAtomStore';
 import { RedisConnectionStore } from './src/RedisConnectionStore';
 import { RedisUpdatesStore } from './src/RedisUpdatesStore';
+import { ADD_UPDATES } from './src/ExtraEvents';
 
 export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
 export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
@@ -282,6 +283,8 @@ async function messagePacket(
             await server.watchBranch(connectionId, message.data);
         } else if (message.name === ADD_ATOMS) {
             await server.addAtoms(connectionId, message.data);
+        } else if (message.name === ADD_UPDATES) {
+            await server.addUpdates(connectionId, message.data);
         } else if (message.name === UNWATCH_BRANCH) {
             await server.unwatchBranch(connectionId, message.data);
         } else if (message.name === SEND_EVENT) {
