@@ -70,7 +70,7 @@ export class CausalRepoServer {
         connectionStore: ApiaryConnectionStore,
         atomStore: ApiaryAtomStore,
         messenger: ApiaryMessenger,
-        updatesStore?: UpdatesStore
+        updatesStore: UpdatesStore
     ) {
         this._connectionStore = connectionStore;
         this._atomStore = atomStore;

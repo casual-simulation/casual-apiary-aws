@@ -46,6 +46,7 @@ import { ApiaryAtomStore } from './src/ApiaryAtomStore';
 import { RedisClient, createClient as createRedisClient } from 'redis';
 import { RedisAtomStore } from './src/RedisAtomStore';
 import { RedisConnectionStore } from './src/RedisConnectionStore';
+import { RedisUpdatesStore } from './src/RedisUpdatesStore';
 
 export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
 export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
@@ -319,7 +320,8 @@ function createCausalRepoServer(event: APIGatewayProxyEvent) {
             new CausalRepoServer(
                 connectionStore,
                 new RedisAtomStore(REDIS_NAMESPACE, redisClient),
-                new ApiGatewayMessenger(callbackUrl(event), connectionStore)
+                new ApiGatewayMessenger(callbackUrl(event), connectionStore),
+                new RedisUpdatesStore(REDIS_NAMESPACE, redisClient)
             ),
             () => {
                 cleanup();
@@ -341,7 +343,8 @@ function createCausalRepoServer(event: APIGatewayProxyEvent) {
             new CausalRepoServer(
                 connectionStore,
                 new DynamoDbAtomStore(ATOMS_TABLE_NAME, documentClient),
-                new ApiGatewayMessenger(callbackUrl(event), connectionStore)
+                new ApiGatewayMessenger(callbackUrl(event), connectionStore),
+                null
             ),
             () => {},
         ] as const;
