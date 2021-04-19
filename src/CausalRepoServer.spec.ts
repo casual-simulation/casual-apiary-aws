@@ -41,9 +41,16 @@ import {
 } from '@casual-simulation/aux-common/bots/BotEvents';
 import { createBot } from '@casual-simulation/aux-common/bots/BotCalculations';
 import uuid from 'uuid/v4';
-import { bot, tag, value } from '@casual-simulation/aux-common/aux-format-2';
+import {
+    bot,
+    tag,
+    updates,
+    value,
+} from '@casual-simulation/aux-common/aux-format-2';
 import { DEVICE_COUNT } from './ApiaryMessenger';
 import { ON_WEBHOOK_ACTION_NAME } from '@casual-simulation/aux-common';
+import { MemoryUpdatesStore } from './MemoryUpdatesStore';
+import { ADD_UPDATES, UPDATES_RECEIVED } from './ExtraEvents';
 // import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
 // import {
 //     hashPassword,
@@ -85,11 +92,13 @@ describe('CausalRepoServer', () => {
     let atomStore: MemoryApiaryAtomStore;
     let connectionStore: MemoryApiaryConnectionStore;
     let messenger: MemoryApiaryMessenger;
+    let updateStore: MemoryUpdatesStore;
 
     beforeEach(() => {
         atomStore.reset();
         connectionStore.reset();
         messenger.reset();
+        updateStore.reset();
     });
 
     // We initialize the server once for all the tests
@@ -98,7 +107,13 @@ describe('CausalRepoServer', () => {
         atomStore = new MemoryApiaryAtomStore();
         connectionStore = new MemoryApiaryConnectionStore();
         messenger = new MemoryApiaryMessenger();
-        server = new CausalRepoServer(connectionStore, atomStore, messenger);
+        updateStore = new MemoryUpdatesStore();
+        server = new CausalRepoServer(
+            connectionStore,
+            atomStore,
+            messenger,
+            updateStore
+        );
     });
 
     describe('connect()', () => {
@@ -479,6 +494,123 @@ describe('CausalRepoServer', () => {
                 );
             });
         });
+
+        describe('updates', () => {
+            it('should load the given branch and send the current updates', async () => {
+                await server.connect(device1Info);
+
+                await updateStore.addUpdates(branchNamespace('testBranch'), [
+                    '123',
+                    '456',
+                ]);
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'testBranch',
+                    protocol: 'updates',
+                });
+
+                expect(messenger.getMessages(device1Info.connectionId)).toEqual(
+                    [
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'testBranch',
+                                updates: ['123', '456'],
+                                initial: true, // should include whether this event includes the initial data.
+                            },
+                        },
+                    ]
+                );
+            });
+
+            it('should create a new orphan branch if the branch name does not exist', async () => {
+                await server.connect(device1Info);
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'doesNotExist',
+                    protocol: 'updates',
+                });
+
+                expect(messenger.getMessages(device1Info.connectionId)).toEqual(
+                    [
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'doesNotExist',
+                                updates: [] as string[],
+                                initial: true,
+                            },
+                        },
+                    ]
+                );
+            });
+
+            describe('temp', () => {
+                it('should load the branch like normal if the branch is temporary', async () => {
+                    await server.connect(device1Info);
+
+                    await updateStore.addUpdates(
+                        branchNamespace('testBranch'),
+                        ['111', '222']
+                    );
+
+                    await server.watchBranch(device1Info.connectionId, {
+                        branch: 'testBranch',
+                        temporary: true,
+                        protocol: 'updates',
+                    });
+
+                    expect(
+                        messenger.getMessages(device1Info.connectionId)
+                    ).toEqual([
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'testBranch',
+                                updates: ['111', '222'],
+                                initial: true,
+                            },
+                        },
+                    ]);
+                });
+
+                it('should load the updates that were added to the branch by another device', async () => {
+                    await server.connect(device1Info);
+                    await server.connect(device2Info);
+                    await server.connect(device3Info);
+
+                    await server.watchBranch(device1Info.connectionId, {
+                        branch: 'testBranch',
+                        protocol: 'updates',
+                        temporary: true,
+                    });
+
+                    await server.addUpdates(device1Info.connectionId, {
+                        branch: 'testBranch',
+                        updates: ['abc', 'def'],
+                    });
+
+                    await server.watchBranch(device3Info.connectionId, {
+                        branch: 'testBranch',
+                        protocol: 'updates',
+                        temporary: true,
+                    });
+
+                    expect(
+                        messenger.getMessages(device3Info.connectionId)
+                    ).toEqual([
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'testBranch',
+                                updates: ['abc', 'def'],
+                                initial: true,
+                            },
+                        },
+                    ]);
+                });
+            });
+        });
     });
 
     // describe(GET_BRANCH, () => {
@@ -687,6 +819,93 @@ describe('CausalRepoServer', () => {
             expect(
                 await atomStore.loadAtoms(branchNamespace('testBranch'))
             ).toEqual([]);
+        });
+
+        describe('updates', () => {
+            it('should stop sending new atoms to devices that have left a branch', async () => {
+                await server.connect(device1Info);
+                await server.connect(device2Info);
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'testBranch',
+                    protocol: 'updates',
+                });
+
+                await server.addUpdates(device2Info.connectionId, {
+                    branch: 'testBranch',
+                    updates: ['111', '222'],
+                });
+
+                await server.unwatchBranch(
+                    device1Info.connectionId,
+                    'testBranch'
+                );
+
+                await server.addUpdates(device2Info.connectionId, {
+                    branch: 'testBranch',
+                    updates: ['333', '444'],
+                });
+
+                expect(messenger.getMessages(device1Info.connectionId)).toEqual(
+                    [
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'testBranch',
+                                updates: [],
+                                initial: true,
+                            },
+                        },
+                        {
+                            name: ADD_UPDATES,
+                            data: {
+                                branch: 'testBranch',
+                                updates: ['111', '222'],
+                            },
+                        },
+                    ]
+                );
+            });
+
+            it('should delete temporary updates when all devices have left the branch', async () => {
+                await server.connect(device1Info);
+                await server.connect(device2Info);
+
+                await server.watchBranch(device1Info.connectionId, {
+                    branch: 'testBranch',
+                    temporary: true,
+                    protocol: 'updates',
+                });
+
+                await server.watchBranch(device2Info.connectionId, {
+                    branch: 'testBranch',
+                    temporary: true,
+                    protocol: 'updates',
+                });
+
+                await server.addUpdates(device2Info.connectionId, {
+                    branch: 'testBranch',
+                    updates: ['111', '222'],
+                });
+
+                await server.unwatchBranch(
+                    device1Info.connectionId,
+                    'testBranch'
+                );
+
+                expect(
+                    await updateStore.getUpdates(branchNamespace('testBranch'))
+                ).toEqual(['111', '222']);
+
+                await server.unwatchBranch(
+                    device2Info.connectionId,
+                    'testBranch'
+                );
+
+                expect(
+                    await updateStore.getUpdates(branchNamespace('testBranch'))
+                ).toEqual([]);
+            });
         });
     });
 
@@ -1541,6 +1760,189 @@ describe('CausalRepoServer', () => {
         //         },
         //     ]);
         // });
+    });
+
+    describe(ADD_UPDATES, () => {
+        it('should add the given updates to the given branch', async () => {
+            await server.connect(device1Info);
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['111', '222'],
+                updateId: 0,
+            });
+
+            await updateStore.addUpdates(branchNamespace('testBranch'), [
+                '333',
+            ]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: UPDATES_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        updateId: 0,
+                    },
+                },
+
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222', '333'],
+                        initial: true,
+                    },
+                },
+            ]);
+        });
+
+        it('should notify all other devices connected to the branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+            await server.connect(device3Info);
+
+            await updateStore.addUpdates(branchNamespace('testBranch'), [
+                '111',
+                '222',
+            ]);
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+            });
+
+            await server.watchBranch(device3Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+            });
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['333'],
+            });
+
+            expect(messenger.getMessages(device2Info.connectionId)).toEqual([
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222'],
+                        initial: true,
+                    },
+                },
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['333'],
+                    },
+                },
+            ]);
+
+            expect(messenger.getMessages(device3Info.connectionId)).toEqual([
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222'],
+                        initial: true,
+                    },
+                },
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['333'],
+                    },
+                },
+            ]);
+        });
+
+        it('should not notify the device that sent the new atoms', async () => {
+            await server.connect(device1Info);
+
+            await updateStore.addUpdates(branchNamespace('testBranch'), [
+                '111',
+                '222',
+            ]);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+            });
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['333'],
+                updateId: 0,
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222'],
+                        initial: true,
+                    },
+                },
+
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: UPDATES_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        updateId: 0,
+                    },
+                },
+            ]);
+        });
+
+        it('should immediately store the added atoms', async () => {
+            await server.connect(device1Info);
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['111', '222'],
+                updateId: 0,
+            });
+
+            const updates = await updateStore.getUpdates(
+                branchNamespace('testBranch')
+            );
+
+            expect(updates).toEqual(['111', '222']);
+        });
+
+        it('should ignore when given an event with a null branch', async () => {
+            await server.connect(device1Info);
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: null,
+                updates: ['111'],
+            });
+        });
+
+        it('should not crash if adding atoms to a branch that does not exist', async () => {
+            await server.connect(device1Info);
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'abc',
+                updates: ['111'],
+            });
+
+            expect(
+                await updateStore.getUpdates(branchNamespace('abc'))
+            ).toEqual(['111']);
+        });
     });
 
     describe(SEND_EVENT, () => {
@@ -3106,5 +3508,13 @@ describe('CausalRepoServer', () => {
                 )
             ).toBe(true);
         });
+    });
+});
+
+describe('branchNamespace()', () => {
+    it('should use the default namespace for branches', () => {
+        expect(branchNamespace('testBranch')).toMatchInlineSnapshot(
+            `"/branch/testBranch"`
+        );
     });
 });

@@ -18,6 +18,12 @@ import {
     WATCH_BRANCH_DEVICES,
 } from '@casual-simulation/causal-trees';
 import { Packet } from './Events';
+import {
+    AddUpdatesEvent,
+    ADD_UPDATES,
+    UpdatesReceivedEvent,
+    UPDATES_RECEIVED,
+} from './ExtraEvents';
 
 /**
  * The name of the event which gets the number of devices.
@@ -47,6 +53,8 @@ export interface ApiaryMessenger {
 export type Message =
     | WatchBranchMessage
     | AddAtomsMessage
+    | AddUpdatesMessage
+    | UpdatesReceivedMessage
     | AtomsReceivedMessage
     | ReceiveMessageMessage
     | DeviceConnectedToBranchMessage
@@ -72,6 +80,16 @@ export interface AddAtomsMessage {
          */
         initial?: boolean;
     };
+}
+
+export interface AddUpdatesMessage {
+    name: typeof ADD_UPDATES;
+    data: AddUpdatesEvent;
+}
+
+export interface UpdatesReceivedMessage {
+    name: typeof UPDATES_RECEIVED;
+    data: UpdatesReceivedEvent;
 }
 
 export interface AtomsReceivedMessage {

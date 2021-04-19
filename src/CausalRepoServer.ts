@@ -39,6 +39,13 @@ import {
 } from './ApiaryConnectionStore';
 import { ApiaryMessenger, DEVICE_COUNT } from './ApiaryMessenger';
 import { MessagePacket } from './Events';
+import {
+    AddUpdatesEvent,
+    ADD_UPDATES,
+    UPDATES_RECEIVED,
+    WatchBranch,
+} from './ExtraEvents';
+import { UpdatesStore } from './UpdatesStore';
 
 /**
  * Defines a class that is able to serve causal repos in realtime.
@@ -47,6 +54,7 @@ export class CausalRepoServer {
     private _atomStore: ApiaryAtomStore;
     private _connectionStore: ApiaryConnectionStore;
     private _messenger: ApiaryMessenger;
+    private _updatesStore: UpdatesStore;
 
     /**
      * Gets or sets the default device selector that should be used
@@ -61,11 +69,13 @@ export class CausalRepoServer {
     constructor(
         connectionStore: ApiaryConnectionStore,
         atomStore: ApiaryAtomStore,
-        messenger: ApiaryMessenger
+        messenger: ApiaryMessenger,
+        updatesStore?: UpdatesStore
     ) {
         this._connectionStore = connectionStore;
         this._atomStore = atomStore;
         this._messenger = messenger;
+        this._updatesStore = updatesStore;
     }
 
     async connect(connection: DeviceConnection): Promise<void> {
@@ -115,7 +125,7 @@ export class CausalRepoServer {
 
     async handlePacket(connectionId: string, packet: MessagePacket) {}
 
-    async watchBranch(connectionId: string, event: WatchBranchEvent) {
+    async watchBranch(connectionId: string, event: WatchBranch) {
         if (!event) {
             console.warn(
                 '[CasualRepoServer] Trying to watch branch with a null event!'
@@ -143,36 +153,69 @@ export class CausalRepoServer {
             temporary: event.temporary || false,
         });
 
-        const atoms = await this._atomStore.loadAtoms(namespace);
-        const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
-            watchBranchNamespace(event.branch)
-        );
+        if (event.protocol === 'updates') {
+            const updates = await this._updatesStore.getUpdates(namespace);
+            const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
+                watchBranchNamespace(event.branch)
+            );
 
-        console.log(
-            `[CausalRepoServer] [${event.branch}] [${connectionId}] Connected.`
-        );
-        const promises = [
-            this._messenger.sendMessage(
-                watchingDevices.map((d) => d.connectionId),
-                {
-                    name: DEVICE_CONNECTED_TO_BRANCH,
+            console.log(
+                `[CausalRepoServer] [${event.branch}] [${connectionId}] Connected.`
+            );
+            const promises = [
+                this._messenger.sendMessage(
+                    watchingDevices.map((d) => d.connectionId),
+                    {
+                        name: DEVICE_CONNECTED_TO_BRANCH,
+                        data: {
+                            broadcast: false,
+                            branch: event,
+                            device: deviceInfo(connection),
+                        },
+                    }
+                ),
+                this._messenger.sendMessage([connection.connectionId], {
+                    name: ADD_UPDATES,
                     data: {
-                        broadcast: false,
-                        branch: event,
-                        device: deviceInfo(connection),
+                        branch: event.branch,
+                        updates: updates,
+                        initial: true,
                     },
-                }
-            ),
-            this._messenger.sendMessage([connection.connectionId], {
-                name: ADD_ATOMS,
-                data: {
-                    branch: event.branch,
-                    atoms: atoms,
-                    initial: true,
-                },
-            }),
-        ];
-        await Promise.all(promises);
+                }),
+            ];
+            await Promise.all(promises);
+        } else {
+            const atoms = await this._atomStore.loadAtoms(namespace);
+            const watchingDevices = await this._connectionStore.getConnectionsByNamespace(
+                watchBranchNamespace(event.branch)
+            );
+
+            console.log(
+                `[CausalRepoServer] [${event.branch}] [${connectionId}] Connected.`
+            );
+            const promises = [
+                this._messenger.sendMessage(
+                    watchingDevices.map((d) => d.connectionId),
+                    {
+                        name: DEVICE_CONNECTED_TO_BRANCH,
+                        data: {
+                            broadcast: false,
+                            branch: event,
+                            device: deviceInfo(connection),
+                        },
+                    }
+                ),
+                this._messenger.sendMessage([connection.connectionId], {
+                    name: ADD_ATOMS,
+                    data: {
+                        branch: event.branch,
+                        atoms: atoms,
+                        initial: true,
+                    },
+                }),
+            ];
+            await Promise.all(promises);
+        }
     }
 
     async unwatchBranch(connectionId: string, branch: string) {
@@ -203,6 +246,7 @@ export class CausalRepoServer {
                 );
                 if (count <= 0) {
                     await this._atomStore.clearNamespace(connection.namespace);
+                    await this._updatesStore.clearUpdates(connection.namespace);
                 }
             }
 
@@ -277,6 +321,51 @@ export class CausalRepoServer {
                 hashes: [...addedAtomHashes, ...removedAtomHashes],
             },
         });
+    }
+
+    async addUpdates(connectionId: string, event: AddUpdatesEvent) {
+        if (!event) {
+            console.warn(
+                '[CasualRepoServer] Trying to add atoms with a null event!'
+            );
+            return;
+        }
+
+        const namespace = branchNamespace(event.branch);
+        if (event.updates) {
+            await this._updatesStore.addUpdates(namespace, event.updates);
+        }
+
+        const hasUpdates = event.updates && event.updates.length > 0;
+        if (hasUpdates) {
+            const connectedDevices = await this._connectionStore.getConnectionsByNamespace(
+                namespace
+            );
+
+            let ret: AddUpdatesEvent = {
+                branch: event.branch,
+                updates: event.updates,
+            };
+
+            await this._messenger.sendMessage(
+                connectedDevices.map((c) => c.connectionId),
+                {
+                    name: ADD_UPDATES,
+                    data: ret,
+                },
+                connectionId
+            );
+        }
+
+        if ('updateId' in event) {
+            await this._messenger.sendMessage([connectionId], {
+                name: UPDATES_RECEIVED,
+                data: {
+                    branch: event.branch,
+                    updateId: event.updateId,
+                },
+            });
+        }
     }
 
     async sendEvent(connectionId: string, event: SendRemoteActionEvent) {
