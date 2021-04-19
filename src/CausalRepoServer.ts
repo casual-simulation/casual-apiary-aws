@@ -100,6 +100,9 @@ export class CausalRepoServer {
                         await this._atomStore.clearNamespace(
                             connection.namespace
                         );
+                        await this._updatesStore.clearUpdates(
+                            connection.namespace
+                        );
                     }
                 }
 

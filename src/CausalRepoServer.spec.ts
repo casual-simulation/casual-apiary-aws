@@ -138,6 +138,77 @@ describe('CausalRepoServer', () => {
             );
             expect(connection).toBeUndefined();
         });
+
+        it('should delete temporary atoms when all devices have left the branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+
+            const a1 = atom(atomId('a', 1), null, {});
+            const a2 = atom(atomId('a', 2), a1, {});
+            const a3 = atom(atomId('a', 3), a2, {});
+            const a4 = atom(atomId('a', 4), a3, {});
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+                temporary: true,
+            });
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+                temporary: true,
+            });
+
+            await server.addAtoms(device2Info.connectionId, {
+                branch: 'testBranch',
+                atoms: [a1, a2, a3, a4],
+            });
+
+            await server.unwatchBranch(device1Info.connectionId, 'testBranch');
+
+            expect(
+                await atomStore.loadAtoms(branchNamespace('testBranch'))
+            ).toEqual([a1, a2, a3, a4]);
+
+            await server.disconnect(device2Info.connectionId);
+
+            expect(
+                await atomStore.loadAtoms(branchNamespace('testBranch'))
+            ).toEqual([]);
+        });
+
+        it('should delete temporary updates when all devices have left the branch', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+
+            await server.watchBranch(device1Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+                temporary: true,
+            });
+
+            await server.watchBranch(device2Info.connectionId, {
+                branch: 'testBranch',
+                protocol: 'updates',
+                temporary: true,
+            });
+
+            await server.addUpdates(device2Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['111', '222'],
+            });
+
+            await server.unwatchBranch(device1Info.connectionId, 'testBranch');
+
+            expect(
+                await updateStore.getUpdates(branchNamespace('testBranch'))
+            ).toEqual(['111', '222']);
+
+            await server.disconnect(device2Info.connectionId);
+
+            expect(
+                await updateStore.getUpdates(branchNamespace('testBranch'))
+            ).toEqual([]);
+        });
     });
 
     describe(WATCH_BRANCH, () => {
