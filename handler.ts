@@ -133,6 +133,8 @@ export async function message(
         }
     }
 
+    console.log('[handler] Done.');
+
     return {
         statusCode: 200,
     };
