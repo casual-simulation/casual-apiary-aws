@@ -280,6 +280,11 @@ export class CausalRepoServer {
         }
 
         const namespace = branchNamespace(event.branch);
+
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Add Atoms`
+        );
+
         if (event.atoms) {
             await this._atomStore.saveAtoms(namespace, event.atoms);
         }
@@ -335,6 +340,11 @@ export class CausalRepoServer {
         }
 
         const namespace = branchNamespace(event.branch);
+
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Add Updates`
+        );
+
         if (event.updates) {
             await this._updatesStore.addUpdates(namespace, event.updates);
         }

@@ -33,13 +33,18 @@ export class ApiGatewayMessenger implements ApiaryMessenger {
         data: Message,
         excludeConnection?: string
     ): Promise<void> {
+        console.log(`[ApiGatewayMessenger] [${data.name}] Send Message`);
         const packet: Packet = {
             type: 'message',
             channel: data.name,
             data: data.data,
         };
         const jsonData = JSON.stringify(packet);
-        await this._sendData(connectionIds, jsonData, excludeConnection);
+        try {
+            await this._sendData(connectionIds, jsonData, excludeConnection);
+        } catch (err) {
+            console.error('[ApiGatewayMessenger] Failed to send message.', err);
+        }
     }
 
     async sendPacket(connectionId: string, packet: Packet) {
