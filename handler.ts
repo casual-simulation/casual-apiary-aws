@@ -47,7 +47,7 @@ import { RedisClient, createClient as createRedisClient } from 'redis';
 import { RedisAtomStore } from './src/RedisAtomStore';
 import { RedisConnectionStore } from './src/RedisConnectionStore';
 import { RedisUpdatesStore } from './src/RedisUpdatesStore';
-import { ADD_UPDATES } from './src/ExtraEvents';
+import { ADD_UPDATES, SYNC_TIME } from './src/ExtraEvents';
 
 export const ATOMS_TABLE_NAME = process.env.ATOMS_TABLE;
 export const CONNECTIONS_TABLE_NAME = process.env.CONNECTIONS_TABLE;
@@ -297,6 +297,12 @@ async function messagePacket(
             await server.unwatchBranchDevices(connectionId, message.data);
         } else if (message.name === DEVICE_COUNT) {
             await server.deviceCount(connectionId, <string>(<any>message.data));
+        } else if (message.name === SYNC_TIME) {
+            await server.syncTime(
+                connectionId,
+                message.data,
+                event.requestContext.requestTimeEpoch
+            );
         }
     } finally {
         cleanup();

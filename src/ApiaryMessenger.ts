@@ -21,6 +21,8 @@ import { Packet } from './Events';
 import {
     AddUpdatesEvent,
     ADD_UPDATES,
+    SYNC_TIME,
+    TimeSyncResponse,
     UpdatesReceivedEvent,
     UPDATES_RECEIVED,
 } from './ExtraEvents';
@@ -63,7 +65,8 @@ export type Message =
     | SendEventMessage
     | WatchBranchDevicesMessage
     | UnatchBranchDevicesMessage
-    | DeviceCountMessage;
+    | DeviceCountMessage
+    | SyncTimeMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -137,4 +140,9 @@ export interface DeviceCountMessage {
         branch: string;
         count: number;
     };
+}
+
+export interface SyncTimeMessage {
+    name: typeof SYNC_TIME;
+    data: TimeSyncResponse;
 }

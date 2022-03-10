@@ -50,7 +50,7 @@ import {
 import { DEVICE_COUNT } from './ApiaryMessenger';
 import { ON_WEBHOOK_ACTION_NAME } from '@casual-simulation/aux-common';
 import { MemoryUpdatesStore } from './MemoryUpdatesStore';
-import { ADD_UPDATES, UPDATES_RECEIVED } from './ExtraEvents';
+import { ADD_UPDATES, UPDATES_RECEIVED, SYNC_TIME } from './ExtraEvents';
 // import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
 // import {
 //     hashPassword,
@@ -2769,6 +2769,48 @@ describe('CausalRepoServer', () => {
                     data: {
                         branch: 'testBranch',
                         count: 2,
+                    },
+                },
+            ]);
+        });
+    });
+
+    describe(SYNC_TIME, () => {
+        let oldNow: typeof Date.now;
+        let now: jest.Mock<number>;
+
+        beforeEach(() => {
+            oldNow = Date.now;
+            Date.now = now = jest.fn();
+        });
+
+        afterEach(() => {
+            Date.now = oldNow;
+        });
+
+        it('should send a response with current time', async () => {
+            await server.connect(device1Info);
+            await server.connect(device2Info);
+
+            now.mockReturnValueOnce(1000).mockReturnValueOnce(2000);
+
+            await server.syncTime(
+                device1Info.connectionId,
+                {
+                    id: 1,
+                    clientRequestTime: 123,
+                },
+                500
+            );
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                {
+                    name: SYNC_TIME,
+                    data: {
+                        id: 1,
+                        clientRequestTime: 123,
+                        serverReceiveTime: 500,
+                        serverTransmitTime: 1000,
                     },
                 },
             ]);

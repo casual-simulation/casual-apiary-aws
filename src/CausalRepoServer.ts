@@ -42,6 +42,9 @@ import { MessagePacket } from './Events';
 import {
     AddUpdatesEvent,
     ADD_UPDATES,
+    SYNC_TIME,
+    TimeSyncRequest,
+    TimeSyncResponse,
     UPDATES_RECEIVED,
     WatchBranch,
 } from './ExtraEvents';
@@ -629,6 +632,22 @@ export class CausalRepoServer {
         });
 
         return 200;
+    }
+
+    async syncTime(
+        connectionId: string,
+        event: TimeSyncRequest,
+        requestTime: number
+    ) {
+        await this._messenger.sendMessage([connectionId], {
+            name: SYNC_TIME,
+            data: {
+                id: event.id,
+                clientRequestTime: event.clientRequestTime,
+                serverReceiveTime: requestTime,
+                serverTransmitTime: Date.now(),
+            } as TimeSyncResponse,
+        });
     }
 }
 
