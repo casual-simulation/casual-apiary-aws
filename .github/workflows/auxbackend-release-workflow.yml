@@ -1,0 +1,48 @@
+name: Deploy auxbackend
+
+on:
+    push:
+        tags: 'auxbackend/*'
+
+jobs:
+    deploy:
+        name: Test and Deploy
+        environment: auxbackend
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+
+            - name: Configure AWS credentials
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              run: |
+                  aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID --profile auxbackend
+                  aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY --profile auxbackend
+                  aws configure set region us-east-1 --profile auxbackend
+
+            - name: Use Node.js
+              uses: actions/setup-node@v1
+              with:
+                  node-version: '12'
+
+            - name: Install
+              run: yarn
+              env:
+                  CI: true
+
+            - name: Test
+              run: yarn test:ci
+              env:
+                  CI: true
+
+            - name: Deploy
+              run: yarn deploy:auxbackend
+              env:
+                  SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+                  USE_REDIS: true
+                  REDIS_HOST: ${{ secrets.REDIS_HOST }}
+                  REDIS_PORT: ${{ secrets.REDIS_PORT }}
+                  REDIS_PASS: ${{ secrets.REDIS_PASS }}
+                  REDIS_TLS: ${{ secrets.REDIS_TLS }}
+                  WEBSOCKET_URL: ${{ secrets.WEBSOCKET_URL }}
