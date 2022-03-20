@@ -14,7 +14,8 @@
         "deploy:casualos-dev": "serverless deploy --stage casualos-dev",
         "deploy:boormanlabs": "serverless deploy --stage boormanlabs",
         "deploy:casualos": "serverless deploy --stage casualos-redis",
-        "deploy:publicos": "serverless deploy --stage publicos-prod"
+        "deploy:publicos": "serverless deploy --stage publicos-prod",
+        "deploy:auxbackend": "serverless deploy --stage auxbackend-prod"
     },
     "husky": {
         "hooks": {
