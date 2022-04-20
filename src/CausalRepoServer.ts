@@ -86,7 +86,6 @@ export class CausalRepoServer {
     }
 
     async connect(connection: DeviceConnection): Promise<void> {
-        console.log('save connection');
         await this._connectionStore.saveConnection(connection);
     }
 
