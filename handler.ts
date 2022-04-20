@@ -148,9 +148,11 @@ export async function webhook(
         setSpan(context.serverlessSdk.span);
     }
 
-    const branch = event.queryStringParameters['server'];
+    const branch =
+        event.queryStringParameters['server'] ??
+        event.queryStringParameters['inst'];
     if (!branch) {
-        console.log('[handler] No server query parameter was provided!');
+        console.log('[handler] No server/inst query parameter was provided!');
         return {
             statusCode: 404,
         };
