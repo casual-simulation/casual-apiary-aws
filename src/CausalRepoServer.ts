@@ -399,7 +399,7 @@ export class CausalRepoServer {
 
         if (event.action.type === 'remote') {
             const action = event.action.event as BotAction;
-            if (action.type === 'setup_story') {
+            if (action.type === 'setup_server') {
                 // Process setup_story
                 const namespace = branchNamespace(action.channel);
 
