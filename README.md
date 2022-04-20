@@ -22,7 +22,7 @@
 1. Install the [Serverless framework](https://www.serverless.com/framework/docs/getting-started/)
 
 ```bash
-$ npm install -g serverless
+$ npm install -g serverless@2.11.1
 ```
 
 2. Install dependencies with Yarn.

@@ -5,7 +5,9 @@ import {
     createBot,
     isBot,
     ON_WEBHOOK_ACTION_NAME,
-} from '@casual-simulation/aux-common';
+} from '@casual-simulation/aux-common/bots';
+import { YjsPartitionImpl } from '@casual-simulation/aux-common/partitions';
+import { StoredAux } from '@casual-simulation/aux-vm';
 import {
     applyEvents,
     auxTree,
@@ -49,6 +51,8 @@ import {
     WatchBranch,
 } from './ExtraEvents';
 import { UpdatesStore } from './UpdatesStore';
+import { toByteArray } from 'base64-js';
+import { applyUpdate } from 'yjs';
 
 /**
  * Defines a class that is able to serve causal repos in realtime.
@@ -82,6 +86,7 @@ export class CausalRepoServer {
     }
 
     async connect(connection: DeviceConnection): Promise<void> {
+        console.log('save connection');
         await this._connectionStore.saveConnection(connection);
     }
 
@@ -568,6 +573,24 @@ export class CausalRepoServer {
                 count: count,
             },
         });
+    }
+
+    async getBranchData(branch: string): Promise<StoredAux> {
+        const namespace = branchNamespace(branch);
+        console.log(`[CausalRepoServer] [${namespace}] Get Data`);
+
+        const updates = await this._updatesStore.getUpdates(namespace);
+        const partition = new YjsPartitionImpl({ type: 'yjs' });
+
+        for (let updateBase64 of updates) {
+            const update = toByteArray(updateBase64);
+            applyUpdate(partition.doc, update);
+        }
+
+        return {
+            version: 1,
+            state: partition.state,
+        };
     }
 
     /**

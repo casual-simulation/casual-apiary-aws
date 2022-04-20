@@ -29,10 +29,9 @@ custom:
     namespaceConnectionsTable: 'NamespaceConnectionsTable-${opt:stage}'
 
 # Add the serverless-webpack plugin
-plugins:
-    [
+plugins: [
         'serverless-webpack',
-        'serverless-dynamodb-local',
+        # 'serverless-dynamodb-local',
         'serverless-s3-local',
         'serverless-offline',
     ]
@@ -135,6 +134,14 @@ functions:
             - http:
                   path: webhook
                   method: ANY
+    dataPortal:
+        handler: handler.instData
+        environment:
+            MESSAGES_BUCKET: '${self:custom.messagesBucket}'
+        events:
+            - http:
+                  path: instData
+                  method: GET
 resources:
     Resources:
         # A DynamoDB table that groups atoms by namespace

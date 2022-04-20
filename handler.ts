@@ -192,6 +192,44 @@ export async function webhook(
     }
 }
 
+export async function instData(
+    event: APIGatewayProxyEvent,
+    context: any
+): Promise<APIGatewayProxyStructuredResultV2> {
+    const branch =
+        event.queryStringParameters['server'] ??
+        event.queryStringParameters['inst'];
+    if (!branch) {
+        console.log('[handler] No server/inst query parameter was provided!');
+        return {
+            statusCode: 404,
+        };
+    }
+
+    const [server, cleanup] = getCausalRepoServer(event);
+    try {
+        const data = await server.getBranchData(branch);
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify(data),
+            headers: {
+                'content-type': 'application/json',
+            },
+        };
+    } catch (err) {
+        console.error(
+            '[handler] An error occurred while getting inst data:',
+            err
+        );
+        return {
+            statusCode: 500,
+        };
+    } finally {
+        cleanup();
+    }
+}
+
 async function processPacket(event: APIGatewayProxyEvent, packet: Packet) {
     if (packet) {
         if (packet.type === 'login') {

@@ -37,27 +37,30 @@ import {
 } from '@casual-simulation/causal-trees';
 import {
     action,
-    setupStory,
-} from '@casual-simulation/aux-common/bots/BotEvents';
+    botAdded,
+    setupServer,
+    ON_WEBHOOK_ACTION_NAME,
+} from '@casual-simulation/aux-common/bots';
 import { createBot } from '@casual-simulation/aux-common/bots/BotCalculations';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 import {
     bot,
     tag,
     updates,
     value,
 } from '@casual-simulation/aux-common/aux-format-2';
+import {
+    createYjsPartition,
+    YjsPartitionImpl,
+} from '@casual-simulation/aux-common/partitions/YjsPartition';
 import { DEVICE_COUNT } from './ApiaryMessenger';
-import { ON_WEBHOOK_ACTION_NAME } from '@casual-simulation/aux-common';
 import { MemoryUpdatesStore } from './MemoryUpdatesStore';
 import { ADD_UPDATES, UPDATES_RECEIVED, SYNC_TIME } from './ExtraEvents';
-// import { bot } from '../aux-vm/node_modules/@casual-simulation/aux-common/aux-format-2';
-// import {
-//     hashPassword,
-//     verifyPassword,
-// } from '../causal-trees/node_modules/@casual-simulation/crypto';
+import { encodeStateAsUpdate } from 'yjs';
+import { fromByteArray } from 'base64-js';
+
 const uuidMock: jest.Mock = <any>uuid;
-jest.mock('uuid/v4');
+jest.mock('uuid');
 
 console.log = jest.fn();
 console.error = jest.fn();
@@ -2380,7 +2383,7 @@ describe('CausalRepoServer', () => {
                 await server.sendEvent(device1Info.connectionId, {
                     branch: 'testBranch',
                     action: remote(
-                        setupStory(
+                        setupServer(
                             'otherBranch',
                             createBot('test', {
                                 abc: 'def',
@@ -2407,7 +2410,7 @@ describe('CausalRepoServer', () => {
                 await server.sendEvent(device1Info.connectionId, {
                     branch: 'testBranch',
                     action: remote(
-                        setupStory('otherBranch', {
+                        setupServer('otherBranch', {
                             abc: 'def',
                         })
                     ),
@@ -2436,7 +2439,7 @@ describe('CausalRepoServer', () => {
                 await server.sendEvent(device1Info.connectionId, {
                     branch: 'testBranch',
                     action: remote(
-                        setupStory('otherBranch', {
+                        setupServer('otherBranch', {
                             abc: 'def',
                         })
                     ),
@@ -2466,7 +2469,7 @@ describe('CausalRepoServer', () => {
                 await server.sendEvent(device1Info.connectionId, {
                     branch: 'testBranch',
                     action: remote(
-                        setupStory('otherBranch', {
+                        setupServer('otherBranch', {
                             abc: 'def',
                         })
                     ),
@@ -2814,6 +2817,53 @@ describe('CausalRepoServer', () => {
                     },
                 },
             ]);
+        });
+    });
+
+    describe('getBranchData()', () => {
+        it('should return an empty AUX if there is no branch updates', async () => {
+            const data = await server.getBranchData('testBranch');
+
+            expect(data).toEqual({
+                version: 1,
+                state: {},
+            });
+        });
+
+        it('should return the aux file for the given branch', async () => {
+            const partition = createYjsPartition({
+                type: 'yjs',
+            });
+
+            await partition.applyEvents([
+                botAdded(
+                    createBot('test1', {
+                        abc: 'def',
+                        ghi: 123,
+                    })
+                ),
+            ]);
+
+            const updateBytes = encodeStateAsUpdate(
+                (partition as YjsPartitionImpl).doc
+            );
+            const updateBase64 = fromByteArray(updateBytes);
+
+            await updateStore.addUpdates(branchNamespace('testBranch'), [
+                updateBase64,
+            ]);
+
+            const data = await server.getBranchData('testBranch');
+
+            expect(data).toEqual({
+                version: 1,
+                state: {
+                    test1: createBot('test1', {
+                        abc: 'def',
+                        ghi: 123,
+                    }),
+                },
+            });
         });
     });
 
