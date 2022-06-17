@@ -63,6 +63,11 @@ export interface AddUpdatesEvent {
      * This flag MUST be included on the first message as large apiary messages may appear out of order.
      */
     initial?: boolean;
+
+    /**
+     * The timestamps for the updates.
+     */
+    timestamps?: number[];
 }
 
 /**

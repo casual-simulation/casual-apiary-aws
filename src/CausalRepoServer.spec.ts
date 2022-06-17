@@ -12,6 +12,7 @@ import {
     ATOMS_RECEIVED,
     DEVICE_CONNECTED_TO_BRANCH,
     DEVICE_DISCONNECTED_FROM_BRANCH,
+    GET_UPDATES,
     RECEIVE_EVENT,
     SEND_EVENT,
     UNWATCH_BRANCH,
@@ -204,13 +205,19 @@ describe('CausalRepoServer', () => {
 
             expect(
                 await updateStore.getUpdates(branchNamespace('testBranch'))
-            ).toEqual(['111', '222']);
+            ).toEqual({
+                updates: ['111', '222'],
+                timestamps: [expect.any(Number), expect.any(Number)],
+            });
 
             await server.disconnect(device2Info.connectionId);
 
             expect(
                 await updateStore.getUpdates(branchNamespace('testBranch'))
-            ).toEqual([]);
+            ).toEqual({
+                updates: [],
+                timestamps: [],
+            });
         });
     });
 
@@ -969,7 +976,10 @@ describe('CausalRepoServer', () => {
 
                 expect(
                     await updateStore.getUpdates(branchNamespace('testBranch'))
-                ).toEqual(['111', '222']);
+                ).toEqual({
+                    updates: ['111', '222'],
+                    timestamps: [expect.any(Number), expect.any(Number)],
+                });
 
                 await server.unwatchBranch(
                     device2Info.connectionId,
@@ -978,8 +988,109 @@ describe('CausalRepoServer', () => {
 
                 expect(
                     await updateStore.getUpdates(branchNamespace('testBranch'))
-                ).toEqual([]);
+                ).toEqual({
+                    updates: [],
+                    timestamps: [],
+                });
             });
+        });
+    });
+
+    describe(GET_UPDATES, () => {
+        let originalNow: any;
+        let mockedNow: jest.Mock<number>;
+
+        beforeEach(() => {
+            originalNow = Date.now;
+            Date.now = mockedNow = jest.fn();
+        });
+
+        afterEach(() => {
+            Date.now = originalNow;
+        });
+
+        it('should load the given branch and send the current updates', async () => {
+            await server.connect(device1Info);
+
+            mockedNow.mockReturnValue(100);
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['111', '222'],
+                updateId: 0,
+            });
+
+            await server.getUpdates(device1Info.connectionId, 'testBranch');
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: UPDATES_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        updateId: 0,
+                    },
+                },
+
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222'],
+                        timestamps: [100, 100],
+                    },
+                },
+            ]);
+        });
+
+        it('should not send additional atoms that were added after the GET_UPDATES call', async () => {
+            await server.connect(device1Info);
+
+            mockedNow.mockReturnValue(100);
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['111', '222'],
+                updateId: 0,
+            });
+
+            await server.getUpdates(device1Info.connectionId, 'testBranch');
+
+            await server.addUpdates(device1Info.connectionId, {
+                branch: 'testBranch',
+                updates: ['333'],
+                updateId: 1,
+            });
+
+            expect(messenger.getMessages(device1Info.connectionId)).toEqual([
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: UPDATES_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        updateId: 0,
+                    },
+                },
+
+                {
+                    name: ADD_UPDATES,
+                    data: {
+                        branch: 'testBranch',
+                        updates: ['111', '222'],
+                        timestamps: [100, 100],
+                    },
+                },
+
+                // Server should send a atoms received event
+                // back indicating which atoms it processed
+                {
+                    name: UPDATES_RECEIVED,
+                    data: {
+                        branch: 'testBranch',
+                        updateId: 1,
+                    },
+                },
+            ]);
         });
     });
 
@@ -1993,7 +2104,10 @@ describe('CausalRepoServer', () => {
                 branchNamespace('testBranch')
             );
 
-            expect(updates).toEqual(['111', '222']);
+            expect(updates).toEqual({
+                updates: ['111', '222'],
+                timestamps: [expect.any(Number), expect.any(Number)],
+            });
         });
 
         it('should ignore when given an event with a null branch', async () => {
@@ -2015,7 +2129,10 @@ describe('CausalRepoServer', () => {
 
             expect(
                 await updateStore.getUpdates(branchNamespace('abc'))
-            ).toEqual(['111']);
+            ).toEqual({
+                updates: ['111'],
+                timestamps: [expect.any(Number)],
+            });
         });
     });
 

@@ -7,6 +7,7 @@ import {
     DEVICE_CONNECTED_TO_BRANCH,
     DEVICE_DISCONNECTED_FROM_BRANCH,
     DisconnectedFromBranchEvent,
+    GET_UPDATES,
     ReceiveDeviceActionEvent,
     RECEIVE_EVENT,
     SendRemoteActionEvent,
@@ -66,7 +67,8 @@ export type Message =
     | WatchBranchDevicesMessage
     | UnatchBranchDevicesMessage
     | DeviceCountMessage
-    | SyncTimeMessage;
+    | SyncTimeMessage
+    | GetUpdatesMessage;
 
 export interface WatchBranchMessage {
     name: typeof WATCH_BRANCH;
@@ -145,4 +147,9 @@ export interface DeviceCountMessage {
 export interface SyncTimeMessage {
     name: typeof SYNC_TIME;
     data: TimeSyncResponse;
+}
+
+export interface GetUpdatesMessage {
+    name: typeof GET_UPDATES;
+    data: string;
 }

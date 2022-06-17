@@ -188,7 +188,7 @@ export class CausalRepoServer {
                     name: ADD_UPDATES,
                     data: {
                         branch: event.branch,
-                        updates: updates,
+                        updates: updates.updates,
                         initial: true,
                     },
                 }),
@@ -581,7 +581,7 @@ export class CausalRepoServer {
         const updates = await this._updatesStore.getUpdates(namespace);
         const partition = new YjsPartitionImpl({ type: 'yjs' });
 
-        for (let updateBase64 of updates) {
+        for (let updateBase64 of updates.updates) {
             const update = toByteArray(updateBase64);
             applyUpdate(partition.doc, update);
         }
@@ -590,6 +590,40 @@ export class CausalRepoServer {
             version: 1,
             state: partition.state,
         };
+    }
+
+    async getUpdates(connectionId: string, branch: string) {
+        if (!branch) {
+            console.warn(
+                '[CasualRepoServer] Trying to get branch with a null branch!'
+            );
+            return;
+        }
+
+        const connection = await this._connectionStore.getConnection(
+            connectionId
+        );
+        if (!connection) {
+            throw new Error(
+                'Unable to get_updates. The connection was not found!'
+            );
+        }
+
+        const namespace = branchNamespace(branch);
+        console.log(
+            `[CausalRepoServer] [${namespace}] [${connectionId}] Get Updates`
+        );
+
+        const updates = await this._updatesStore.getUpdates(namespace);
+
+        this._messenger.sendMessage([connection.connectionId], {
+            name: ADD_UPDATES,
+            data: {
+                branch: branch,
+                updates: updates.updates,
+                timestamps: updates.timestamps,
+            },
+        });
     }
 
     /**

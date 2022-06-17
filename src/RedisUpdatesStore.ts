@@ -1,18 +1,18 @@
 import { RedisClient } from 'redis';
 import { promisify } from 'util';
-import { UpdatesStore } from './UpdatesStore';
+import { StoredUpdates, UpdatesStore } from './UpdatesStore';
 import { spanify } from './Utils';
 
 export class RedisUpdatesStore implements UpdatesStore {
     private _globalNamespace: string;
     private _redis: RedisClient;
 
-    private rpush: (args: [string, ...string[]]) => Promise<number>;
+    private rpush: (args: [string, ...(string | number)[]]) => Promise<number>;
     private lrange: (
         key: string,
         start: number,
         end: number
-    ) => Promise<string[]>;
+    ) => Promise<(string | number)[]>;
     private del: (key: string) => Promise<void>;
 
     constructor(globalNamespace: string, client: RedisClient) {
@@ -35,15 +35,32 @@ export class RedisUpdatesStore implements UpdatesStore {
         );
     }
 
-    async getUpdates(branch: string): Promise<string[]> {
+    async getUpdates(branch: string): Promise<StoredUpdates> {
         const key = branchKey(this._globalNamespace, branch);
         const updates = await this.lrange(key, 0, -1);
-        return updates ?? [];
+        let u = [] as string[];
+        let timestamps = [] as number[];
+        for (let update of updates) {
+            if (typeof update === 'number') {
+                timestamps.push(update);
+            } else {
+                u.push(update);
+            }
+        }
+        return {
+            updates: u,
+            timestamps: timestamps.length > 0 ? timestamps : null,
+        };
     }
 
     async addUpdates(branch: string, updates: string[]): Promise<void> {
         const key = branchKey(this._globalNamespace, branch);
-        await this.rpush([key, ...updates]);
+        let final = [] as (string | number)[];
+        // Store updates and timestamps interleaved
+        for (let update of updates) {
+            final.push(update, Date.now());
+        }
+        await this.rpush([key, ...final]);
     }
 
     async clearUpdates(branch: string): Promise<void> {

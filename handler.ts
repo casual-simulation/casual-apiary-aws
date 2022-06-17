@@ -9,6 +9,7 @@ import { v4 as uuid } from 'uuid';
 import {
     ADD_ATOMS,
     CausalRepoMessageHandlerMethods,
+    GET_UPDATES,
     SEND_EVENT,
     UNWATCH_BRANCH,
     UNWATCH_BRANCH_DEVICES,
@@ -327,6 +328,8 @@ async function messagePacket(
             await server.addAtoms(connectionId, message.data);
         } else if (message.name === ADD_UPDATES) {
             await server.addUpdates(connectionId, message.data);
+        } else if (message.name === GET_UPDATES) {
+            await server.getUpdates(connectionId, message.data);
         } else if (message.name === UNWATCH_BRANCH) {
             await server.unwatchBranch(connectionId, message.data);
         } else if (message.name === SEND_EVENT) {
