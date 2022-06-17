@@ -7,12 +7,12 @@ export class RedisUpdatesStore implements UpdatesStore {
     private _globalNamespace: string;
     private _redis: RedisClient;
 
-    private rpush: (args: [string, ...(string | number)[]]) => Promise<number>;
+    private rpush: (args: [string, ...string[]]) => Promise<number>;
     private lrange: (
         key: string,
         start: number,
         end: number
-    ) => Promise<(string | number)[]>;
+    ) => Promise<string[]>;
     private del: (key: string) => Promise<void>;
 
     constructor(globalNamespace: string, client: RedisClient) {
@@ -41,10 +41,15 @@ export class RedisUpdatesStore implements UpdatesStore {
         let u = [] as string[];
         let timestamps = [] as number[];
         for (let update of updates) {
-            if (typeof update === 'number') {
-                timestamps.push(update);
+            const index = update.indexOf(':');
+            if (index >= 0) {
+                const up = update.slice(0, index);
+                const timestamp = parseInt(update.slice(index + 1));
+                u.push(up);
+                timestamps.push(timestamp);
             } else {
                 u.push(update);
+                timestamps.push(-1);
             }
         }
         return {
@@ -55,12 +60,7 @@ export class RedisUpdatesStore implements UpdatesStore {
 
     async addUpdates(branch: string, updates: string[]): Promise<void> {
         const key = branchKey(this._globalNamespace, branch);
-        let final = [] as (string | number)[];
-        // Store updates and timestamps interleaved
-        for (let update of updates) {
-            final.push(update, Date.now());
-        }
-        await this.rpush([key, ...final]);
+        await this.rpush([key, ...updates.map((u) => `${u}:${Date.now()}`)]);
     }
 
     async clearUpdates(branch: string): Promise<void> {
