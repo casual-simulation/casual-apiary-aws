@@ -17,6 +17,10 @@
     </p>
 </div>
 
+# Notice
+
+This repository has been archived and the functionality has been moved to the main CasualOS repo: https://github.com/casual-simulation/casualos
+
 ## Setup
 
 1. Install the [Serverless framework](https://www.serverless.com/framework/docs/getting-started/)
